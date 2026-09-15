@@ -1,11 +1,11 @@
 {
-    "name": "netliv",
-    "short_name": "netliv",
+    "name": "NetLiv - Pocket Me Cinema",
+    "short_name": "NetLiv",
     "start_url": ".",
     "display": "standalone",
-    "background_color": "#0175C2",
-    "theme_color": "#0175C2",
-    "description": "A new Flutter project.",
+    "background_color": "#000000",
+    "theme_color": "#E50914",
+    "description": "NetLiv - Pocket Me Cinema. Stream Unlimited Movies, Shows & Originals.",
     "orientation": "portrait-primary",
     "prefer_related_applications": false,
     "icons": [

@@ -4,7 +4,6 @@ import 'package:google_fonts/google_fonts.dart';
 import '../../constants/app_colors.dart';
 import '../../data/mock_data.dart';
 import '../../widgets/curved_arc_divider.dart';
-import '../../widgets/faq_accordion_tile.dart';
 import '../../widgets/netflix_top_ten_card.dart';
 import '../../widgets/reason_to_join_card.dart';
 import '../auth/login_screen.dart';
@@ -110,16 +109,16 @@ class _NetflixLandingScreenState extends State<NetflixLandingScreen> {
             const SizedBox(height: 42),
 
             // ==========================================
-            // 4. MORE REASONS TO JOIN (Image 2)
+            // 4. MORE REASONS TO JOIN
             // ==========================================
             _buildMoreReasonsToJoinSection(),
 
-            const SizedBox(height: 48),
+            const SizedBox(height: 40),
 
             // ==========================================
-            // 5. FREQUENTLY ASKED QUESTIONS (Image 3)
+            // 5. MEMBERSHIP CONVERSION CALLOUT (Clean & Modern)
             // ==========================================
-            _buildFaqSection(),
+            _buildMembershipCtaSection(),
 
             const SizedBox(height: 48),
 
@@ -204,15 +203,11 @@ class _NetflixLandingScreenState extends State<NetflixLandingScreen> {
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  // NetLiv Netflix-style bold wordmark
-                  Text(
-                    'NETLIV',
-                    style: GoogleFonts.bebasNeue(
-                      fontSize: 34,
-                      letterSpacing: 1.5,
-                      color: AppColors.netflixRed,
-                      fontWeight: FontWeight.w900,
-                    ),
+                  // NetLiv official brand logo
+                  Image.asset(
+                    'assets/images/logo.png',
+                    height: 38,
+                    fit: BoxFit.contain,
                   ),
 
                   Row(
@@ -482,119 +477,174 @@ class _NetflixLandingScreenState extends State<NetflixLandingScreen> {
             type: ReasonType.kids,
           ),
 
-          const SizedBox(height: 8),
-
-          // Full-width red Get Started button (Image 2)
-          SizedBox(
-            width: double.infinity,
-            height: 48,
-            child: ElevatedButton(
-              onPressed: _getStarted,
-              style: ElevatedButton.styleFrom(
-                backgroundColor: AppColors.netflixRed,
-                elevation: 0,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(4),
-                ),
-              ),
-              child: Text(
-                'Get Started',
-                style: GoogleFonts.inter(
-                  fontSize: 16,
-                  fontWeight: FontWeight.w700,
-                  color: Colors.white,
-                ),
-              ),
-            ),
-          ),
         ],
       ),
     );
   }
 
   // ---------------------------------------------------------------------------
-  // 5. FREQUENTLY ASKED QUESTIONS SECTION
+  // 5. MEMBERSHIP CONVERSION CALLOUT (Clean, Modern & High Converting)
   // ---------------------------------------------------------------------------
-  Widget _buildFaqSection() {
-    final faqs = [
-      {
-        'q': 'What is NetLiv?',
-        'a':
-            'NetLiv is a streaming service that offers a wide variety of award-winning TV shows, movies, anime, documentaries and more on thousands of internet-connected devices.\n\nYou can watch as much as you want, whenever you want without a single commercial – all for one low monthly price. There\'s always something new to discover!',
-      },
-      {
-        'q': 'How much does NetLiv cost?',
-        'a':
-            'Watch NetLiv on your smartphone, tablet, Smart TV, laptop, or streaming device, all for one fixed monthly fee. Plans range from ₹149 to ₹649 a month. No extra costs, no contracts.',
-      },
-      {
-        'q': 'Where can I watch?',
-        'a':
-            'Watch anywhere, anytime. Sign in with your NetLiv account to watch instantly on the web from your personal computer or on any internet-connected device that offers the NetLiv app, including smart TVs, smartphones, tablets, and game consoles.',
-      },
-      {
-        'q': 'How do I cancel?',
-        'a':
-            'NetLiv is flexible. There are no pesky contracts and no commitments. You can easily cancel your account online in two clicks. There are no cancellation fees – start or stop your account anytime.',
-      },
-      {
-        'q': 'What can I watch on NetLiv?',
-        'a':
-            'NetLiv has an extensive library of feature films, documentaries, TV shows, anime, award-winning NetLiv Originals, and more. Watch as much as you want, anytime you want.',
-      },
-      {
-        'q': 'Is NetLiv good for kids?',
-        'a':
-            'The NetLiv Kids experience is included in your membership to give parents control while kids enjoy family-friendly TV shows and movies in their own space.\n\nKids profiles come with PIN-protected parental controls that let you restrict the maturity rating of content kids can see.',
-      },
-    ];
-
+  Widget _buildMembershipCtaSection() {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 20),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            'Frequently Asked Questions',
-            style: GoogleFonts.inter(
-              fontSize: 20,
-              fontWeight: FontWeight.w800,
-              color: Colors.white,
-              letterSpacing: -0.3,
-            ),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 22, vertical: 26),
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(
+            color: const Color(0xFF2E2E2E),
+            width: 1.1,
           ),
-          const SizedBox(height: 18),
+          gradient: const LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: [
+              Color(0xFF201316),
+              Color(0xFF141414),
+              Color(0xFF0D0D0D),
+            ],
+            stops: [0.0, 0.45, 1.0],
+          ),
+          boxShadow: [
+            BoxShadow(
+              color: const Color(0xFFE50914).withOpacity(0.12),
+              blurRadius: 36,
+              offset: const Offset(0, 10),
+            ),
+            BoxShadow(
+              color: Colors.black.withOpacity(0.7),
+              blurRadius: 20,
+              offset: const Offset(0, 8),
+            ),
+          ],
+        ),
+        child: Column(
+          children: [
+            // NetLiv Badge Logo
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+              decoration: BoxDecoration(
+                color: Colors.black,
+                borderRadius: BorderRadius.circular(14),
+                border: Border.all(
+                  color: const Color(0xFFE50914).withOpacity(0.85),
+                  width: 1.5,
+                ),
+                boxShadow: [
+                  BoxShadow(
+                    color: const Color(0xFFE50914).withOpacity(0.4),
+                    blurRadius: 14,
+                  ),
+                ],
+              ),
+              child: Image.asset(
+                'assets/images/logo.png',
+                height: 28,
+                fit: BoxFit.contain,
+              ),
+            ),
+            const SizedBox(height: 18),
 
-          // FAQ Accordions
-          ...faqs.map((f) => FaqAccordionTile(
-                question: f['q']!,
-                answer: f['a']!,
-              )),
+            Text(
+              'Start your membership today.',
+              textAlign: TextAlign.center,
+              style: GoogleFonts.inter(
+                fontSize: 22,
+                fontWeight: FontWeight.w800,
+                color: Colors.white,
+                letterSpacing: -0.4,
+              ),
+            ),
+            const SizedBox(height: 8),
 
-          const SizedBox(height: 32),
-
-          // Secondary Membership Callout (Image 3)
-          Center(
-            child: Text(
+            Text(
               'Ready to watch? Enter your email to create or restart your membership.',
               textAlign: TextAlign.center,
               style: GoogleFonts.inter(
-                fontSize: 14.5,
+                fontSize: 14,
                 fontWeight: FontWeight.w400,
-                color: const Color(0xFFE2E2E2),
-                height: 1.35,
+                color: const Color(0xFFD4D4D4),
+                height: 1.4,
               ),
             ),
-          ),
-          const SizedBox(height: 16),
+            const SizedBox(height: 22),
 
-          _buildEmailField(_bottomEmailController),
+            _buildEmailField(_bottomEmailController),
+            const SizedBox(height: 14),
 
-          const SizedBox(height: 14),
+            SizedBox(
+              width: double.infinity,
+              height: 50,
+              child: ElevatedButton(
+                onPressed: _getStarted,
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppColors.netflixRed,
+                  elevation: 0,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(6),
+                  ),
+                  shadowColor: const Color(0xFFE50914).withOpacity(0.5),
+                ),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Text(
+                      'Get Started',
+                      style: GoogleFonts.inter(
+                        fontSize: 16.5,
+                        fontWeight: FontWeight.w700,
+                        color: Colors.white,
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    const Icon(
+                      Icons.chevron_right_rounded,
+                      color: Colors.white,
+                      size: 24,
+                    ),
+                  ],
+                ),
+              ),
+            ),
+            const SizedBox(height: 18),
 
-          _buildGetStartedButton(),
-        ],
+            // Value proposition trust badges
+            Wrap(
+              alignment: WrapAlignment.center,
+              spacing: 16,
+              runSpacing: 8,
+              children: [
+                _buildTrustBadge('Cancel anytime'),
+                _buildTrustBadge('Starts at ₹149/mo'),
+                _buildTrustBadge('Watch on all devices'),
+              ],
+            ),
+          ],
+        ),
       ),
+    );
+  }
+
+  Widget _buildTrustBadge(String label) {
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        const Icon(
+          Icons.check_circle_rounded,
+          color: Color(0xFFE50914),
+          size: 14,
+        ),
+        const SizedBox(width: 5),
+        Text(
+          label,
+          style: GoogleFonts.inter(
+            fontSize: 12,
+            fontWeight: FontWeight.w500,
+            color: const Color(0xFFABABAB),
+          ),
+        ),
+      ],
     );
   }
 

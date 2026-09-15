@@ -99,14 +99,10 @@ class _LoginScreenState extends State<LoginScreen> {
                             ),
                             const SizedBox(width: 12),
                           ],
-                          Text(
-                            'NETLIV',
-                            style: GoogleFonts.bebasNeue(
-                              fontSize: 34,
-                              letterSpacing: 1.5,
-                              color: AppColors.netflixRed,
-                              fontWeight: FontWeight.w900,
-                            ),
+                          Image.asset(
+                            'assets/images/logo.png',
+                            height: 34,
+                            fit: BoxFit.contain,
                           ),
                         ],
                       ),
