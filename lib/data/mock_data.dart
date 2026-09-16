@@ -1,5 +1,7 @@
+import '../models/billing_record.dart';
 import '../models/episode.dart';
 import '../models/media_item.dart';
+import '../models/notification_item.dart';
 import '../models/upcoming_item.dart';
 import '../models/user_profile.dart';
 
@@ -190,6 +192,7 @@ class MockData {
       type: MediaType.movie,
       topTenRank: 1,
       isOriginal: true,
+      isTrending: true,
     ),
     const MediaItem(
       id: 'top-2',
@@ -225,6 +228,7 @@ class MockData {
       type: MediaType.series,
       topTenRank: 3,
       isOriginal: true,
+      isTrending: true,
       episodes: _mockEpisodesSeason1,
     ),
     const MediaItem(
@@ -296,6 +300,7 @@ class MockData {
       matchScore: 98.9,
       type: MediaType.series,
       isOriginal: true,
+      isTrending: true,
       episodes: _mockEpisodesSeason1,
     ),
     const MediaItem(
@@ -314,6 +319,7 @@ class MockData {
       matchScore: 96.3,
       type: MediaType.movie,
       isOriginal: true,
+      isTrending: true,
     ),
     const MediaItem(
       id: 'orig-3',
@@ -515,4 +521,88 @@ class MockData {
     }
     return map.values.toList();
   }
+
+  // Items currently marked as trending / "live" hot picks
+  static List<MediaItem> get trendingNow =>
+      allItems.where((item) => item.isTrending).toList();
+
+  /// Builds "Because you watched X" style rows: finds items sharing a genre
+  /// with [seed] (excluding the seed itself and anything in [exclude]).
+  static List<MediaItem> recommendationsFor(
+    MediaItem seed, {
+    List<String> exclude = const [],
+    int count = 10,
+  }) {
+    final excludedIds = {seed.id, ...exclude};
+    final matches = allItems.where((item) {
+      if (excludedIds.contains(item.id)) return false;
+      return item.genres.any((g) => seed.genres.contains(g));
+    }).toList();
+    matches.sort((a, b) => b.matchScore.compareTo(a.matchScore));
+    return matches.take(count).toList();
+  }
+
+  // Notifications Center feed
+  static final List<NotificationItem> notifications = [
+    NotificationItem(
+      id: 'n1',
+      type: NotificationType.newEpisode,
+      title: 'New Episode Available',
+      message: 'Neon Shadows: Tokyo 2099 — S2:E5 "Ghost Frequency" just dropped.',
+      timeAgo: '10m ago',
+      imageUrl: continueWatching[0].backdropUrl,
+      relatedItemId: 'cw-1',
+    ),
+    NotificationItem(
+      id: 'n2',
+      type: NotificationType.downloadReady,
+      title: 'Download Ready',
+      message: '"The Silent Horizon" has finished downloading for offline viewing.',
+      timeAgo: '42m ago',
+      imageUrl: continueWatching[1].backdropUrl,
+      relatedItemId: 'cw-2',
+    ),
+    NotificationItem(
+      id: 'n3',
+      type: NotificationType.recommendation,
+      title: 'Picked For You',
+      message: 'Because you watched Chrono Matrix, we think you\'ll love "Synthesis Zero".',
+      timeAgo: '3h ago',
+      imageUrl: netlivOriginals[0].backdropUrl,
+      relatedItemId: 'orig-1',
+    ),
+    NotificationItem(
+      id: 'n4',
+      type: NotificationType.general,
+      title: 'Your Plan Was Updated',
+      message: 'Your NetLiv subscription plan change has been confirmed.',
+      timeAgo: '1d ago',
+    ),
+    NotificationItem(
+      id: 'n5',
+      type: NotificationType.newEpisode,
+      title: 'New Season Alert',
+      message: '"Kingdom of Sands" Season 2 is now streaming.',
+      timeAgo: '2d ago',
+      imageUrl: continueWatching[2].backdropUrl,
+      relatedItemId: 'cw-3',
+    ),
+    NotificationItem(
+      id: 'n6',
+      type: NotificationType.recommendation,
+      title: 'Trending Near You',
+      message: '"Midnight Speed" is trending in your region right now.',
+      timeAgo: '4d ago',
+      imageUrl: topTenToday[3].backdropUrl,
+      relatedItemId: 'top-4',
+    ),
+  ];
+
+  // Account & Billing history
+  static const List<BillingRecord> billingHistory = [
+    BillingRecord(date: '01 Sep 2026', planName: 'Standard', amount: '₹499', status: 'Paid'),
+    BillingRecord(date: '01 Aug 2026', planName: 'Standard', amount: '₹499', status: 'Paid'),
+    BillingRecord(date: '01 Jul 2026', planName: 'Basic', amount: '₹199', status: 'Paid'),
+    BillingRecord(date: '01 Jun 2026', planName: 'Basic', amount: '₹199', status: 'Paid'),
+  ];
 }

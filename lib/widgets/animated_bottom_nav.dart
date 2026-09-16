@@ -17,11 +17,11 @@ class AnimatedBottomNav extends StatelessWidget {
     final bottomPadding = MediaQuery.of(context).padding.bottom;
 
     final navItems = [
-      _NavItem(icon: Icons.home_rounded, label: 'Home'),
-      _NavItem(icon: Icons.search_rounded, label: 'Search'),
-      _NavItem(icon: Icons.local_fire_department_rounded, label: 'Hot & New'),
-      _NavItem(icon: Icons.arrow_circle_down_rounded, label: 'Downloads'),
-      _NavItem(icon: Icons.person_rounded, label: 'Profile'),
+      const _NavItem(icon: Icons.home_rounded, label: 'Home'),
+      const _NavItem(icon: Icons.search_rounded, label: 'Search'),
+      const _NavItem(icon: Icons.play_circle_outline_rounded, label: 'Shorts'),
+      const _NavItem(icon: Icons.arrow_circle_down_rounded, label: 'Downloads'),
+      const _NavItem(icon: Icons.person_rounded, label: 'Profile'),
     ];
 
     return Container(

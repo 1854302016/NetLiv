@@ -3,11 +3,16 @@ import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import '../../constants/app_colors.dart';
 import '../../constants/app_typography.dart';
-import '../../data/mock_data.dart';
+import '../../data/plans_data.dart';
 import '../../models/user_profile.dart';
 import '../../state/app_state.dart';
+import '../../widgets/pin_entry_dialog.dart';
 import '../../widgets/shimmer_image.dart';
 import '../landing/netflix_landing_screen.dart';
+import 'account_billing_screen.dart';
+import 'app_lock_screen.dart';
+import 'parental_controls_screen.dart';
+import 'profile_switcher_screen.dart';
 
 class ProfileScreen extends StatelessWidget {
   const ProfileScreen({super.key});
@@ -42,12 +47,14 @@ class ProfileScreen extends StatelessWidget {
                       Text("Who's Watching?", style: AppTypography.titleMedium),
                       TextButton(
                         onPressed: () {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(content: Text('Manage Profiles Mode')),
+                          Navigator.of(context).push(
+                            MaterialPageRoute(
+                              builder: (_) => const ProfileSwitcherScreen(),
+                            ),
                           );
                         },
                         child: Text(
-                          'Edit',
+                          'Manage',
                           style: AppTypography.chip.copyWith(
                             color: Colors.white70,
                             fontSize: 13,
@@ -61,13 +68,13 @@ class ProfileScreen extends StatelessWidget {
                     height: 110,
                     child: ListView.separated(
                       scrollDirection: Axis.horizontal,
-                      itemCount: MockData.profiles.length + 1,
+                      itemCount: appState.profiles.length + 1,
                       separatorBuilder: (context, index) => const SizedBox(width: 16),
                       itemBuilder: (context, index) {
-                        if (index == MockData.profiles.length) {
+                        if (index == appState.profiles.length) {
                           return _buildAddProfileButton(context);
                         }
-                        final profile = MockData.profiles[index];
+                        final profile = appState.profiles[index];
                         final isCurrent = profile.id == activeProfile.id;
                         return _buildProfileItem(context, profile, isCurrent, appState);
                       },
@@ -151,10 +158,25 @@ class ProfileScreen extends StatelessWidget {
                   _buildSettingTile(
                     icon: Icons.manage_accounts_rounded,
                     title: 'Account & Plan',
-                    trailingText: 'Premium 4K HDR',
+                    trailingText: PlansData.byId(appState.selectedPlanId).name,
                     onTap: () {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(content: Text('NetLiv Ultra HD Plan: \$19.99/mo')),
+                      Navigator.of(context).push(
+                        MaterialPageRoute(
+                          builder: (_) => const AccountBillingScreen(),
+                        ),
+                      );
+                    },
+                  ),
+
+                  _buildSettingTile(
+                    icon: Icons.lock_rounded,
+                    title: 'App Lock',
+                    trailingText: appState.appLockEnabled ? 'Enabled' : 'Off',
+                    onTap: () {
+                      Navigator.of(context).push(
+                        MaterialPageRoute(
+                          builder: (_) => const AppLockScreen(),
+                        ),
                       );
                     },
                   ),
@@ -164,6 +186,19 @@ class ProfileScreen extends StatelessWidget {
                     title: 'Manage Registered Devices',
                     trailingText: '3 Devices Active',
                     onTap: () {},
+                  ),
+
+                  _buildSettingTile(
+                    icon: Icons.lock_person_rounded,
+                    title: 'Parental Controls & PIN',
+                    trailingText: appState.parentalControlsEnabled ? 'Enabled' : 'Off',
+                    onTap: () {
+                      Navigator.of(context).push(
+                        MaterialPageRoute(
+                          builder: (_) => const ParentalControlsScreen(),
+                        ),
+                      );
+                    },
                   ),
 
                   _buildSettingTile(
@@ -242,6 +277,24 @@ class ProfileScreen extends StatelessWidget {
     );
   }
 
+  Future<void> _selectProfile(
+    BuildContext context,
+    AppState appState,
+    UserProfile profile,
+  ) async {
+    final leavingKids = appState.isKidsModeActive && !profile.isKids;
+    if (leavingKids && appState.parentalControlsEnabled && appState.hasParentalPin) {
+      final ok = await showPinEntryDialog(
+        context,
+        title: 'Parental PIN Required',
+        message: 'Enter your PIN to leave Kids Mode.',
+      );
+      if (!ok) return;
+    }
+    HapticFeedback.selectionClick();
+    appState.setActiveProfile(profile);
+  }
+
   Widget _buildProfileItem(
     BuildContext context,
     UserProfile profile,
@@ -250,10 +303,7 @@ class ProfileScreen extends StatelessWidget {
   ) {
     return GestureDetector(
       behavior: HitTestBehavior.opaque,
-      onTap: () {
-        HapticFeedback.selectionClick();
-        appState.setActiveProfile(profile);
-      },
+      onTap: () => _selectProfile(context, appState, profile),
       child: Column(
         children: [
           AnimatedContainer(
@@ -290,8 +340,8 @@ class ProfileScreen extends StatelessWidget {
   Widget _buildAddProfileButton(BuildContext context) {
     return GestureDetector(
       onTap: () {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Add New Profile modal')),
+        Navigator.of(context).push(
+          MaterialPageRoute(builder: (_) => const ProfileSwitcherScreen()),
         );
       },
       child: Column(

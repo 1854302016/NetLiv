@@ -4,6 +4,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
 import '../constants/app_colors.dart';
 import '../constants/app_typography.dart';
+import '../screens/notifications/notifications_screen.dart';
 import '../state/app_state.dart';
 import 'netliv_logo.dart';
 import 'shimmer_image.dart';
@@ -52,6 +53,43 @@ class CustomAppBar extends StatelessWidget {
             children: [
               const NetLivLogo(fontSize: 22),
               const Spacer(),
+              // Notifications bell with unread badge
+              Stack(
+                clipBehavior: Clip.none,
+                children: [
+                  IconButton(
+                    icon: const Icon(Icons.notifications_none_rounded, color: Colors.white, size: 23),
+                    onPressed: () {
+                      HapticFeedback.lightImpact();
+                      Navigator.of(context).push(
+                        MaterialPageRoute(builder: (_) => const NotificationsScreen()),
+                      );
+                    },
+                  ),
+                  if (appState.unreadNotificationCount > 0)
+                    Positioned(
+                      top: 8,
+                      right: 8,
+                      child: Container(
+                        padding: const EdgeInsets.all(3),
+                        constraints: const BoxConstraints(minWidth: 16, minHeight: 16),
+                        decoration: const BoxDecoration(
+                          color: AppColors.netflixRed,
+                          shape: BoxShape.circle,
+                        ),
+                        child: Text(
+                          '${appState.unreadNotificationCount}',
+                          textAlign: TextAlign.center,
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 9,
+                            fontWeight: FontWeight.w800,
+                          ),
+                        ),
+                      ),
+                    ),
+                ],
+              ),
               // Cast button
               IconButton(
                 icon: const Icon(Icons.cast_rounded, color: Colors.white, size: 21),
@@ -121,6 +159,7 @@ class CustomAppBar extends StatelessWidget {
                 _buildCategoryPill(context, 'All', appState),
                 _buildCategoryPill(context, 'TV Shows', appState),
                 _buildCategoryPill(context, 'Movies', appState),
+                _buildCategoryPill(context, 'Web Series', appState),
                 _buildCategoryPill(context, 'Originals', appState),
                 _buildCategoryPill(context, 'Categories', appState, isDropdown: true),
               ],

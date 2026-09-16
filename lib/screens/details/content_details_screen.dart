@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
+import 'package:share_plus/share_plus.dart';
 import '../../constants/app_colors.dart';
 import '../../constants/app_typography.dart';
 import '../../data/mock_data.dart';
@@ -9,6 +10,14 @@ import '../../models/media_item.dart';
 import '../../state/app_state.dart';
 import '../../widgets/shimmer_image.dart';
 import '../../widgets/simulated_player_modal.dart';
+import '../genre/genre_browse_screen.dart';
+
+const List<String> _kFriendAvatars = [
+  'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=200&auto=format&fit=crop&q=80',
+  'https://images.unsplash.com/photo-1547425260-76bcadfb4f2c?w=200&auto=format&fit=crop&q=80',
+  'https://images.unsplash.com/photo-1517841905240-472988babdf9?w=200&auto=format&fit=crop&q=80',
+  'https://images.unsplash.com/photo-1607346256330-dee7af15f7c5?w=200&auto=format&fit=crop&q=80',
+];
 
 class ContentDetailsScreen extends StatefulWidget {
   final MediaItem item;
@@ -120,17 +129,26 @@ class _ContentDetailsScreenState extends State<ContentDetailsScreen>
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceAround,
                   children: [
-                    _buildShareIcon(Icons.link_rounded, 'Copy Link', () {
+                    _buildShareIcon(Icons.link_rounded, 'Copy Link', () async {
                       Navigator.pop(context);
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(content: Text('Link copied to clipboard')),
+                      await Clipboard.setData(
+                        ClipboardData(text: 'https://netliv.app/title/${widget.item.id}'),
                       );
+                      if (context.mounted) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(content: Text('Link copied to clipboard')),
+                        );
+                      }
                     }),
-                    _buildShareIcon(Icons.message_rounded, 'Messages', () {
+                    _buildShareIcon(Icons.groups_rounded, 'Watch Party', () {
                       Navigator.pop(context);
+                      _showWatchPartySheet();
                     }),
                     _buildShareIcon(Icons.share_rounded, 'More', () {
                       Navigator.pop(context);
+                      Share.share(
+                        'Check out "${widget.item.title}" on NetLiv! https://netliv.app/title/${widget.item.id}',
+                      );
                     }),
                   ],
                 ),
@@ -138,6 +156,238 @@ class _ContentDetailsScreenState extends State<ContentDetailsScreen>
               ],
             ),
           ),
+        );
+      },
+    );
+  }
+
+  void _showRatingSheet(AppState appState) {
+    HapticFeedback.lightImpact();
+    int selectedStars = appState.getUserRating(widget.item.id) ?? 0;
+
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: AppColors.surfaceElevated,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      builder: (sheetContext) {
+        return StatefulBuilder(
+          builder: (context, setSheetState) {
+            return SafeArea(
+              child: Padding(
+                padding: const EdgeInsets.all(24),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text('Rate "${widget.item.title}"', style: AppTypography.titleMedium),
+                    const SizedBox(height: 6),
+                    Text(
+                      '${widget.item.matchScore.toStringAsFixed(0)}% of viewers loved this',
+                      style: AppTypography.bodySmall.copyWith(color: AppColors.textMuted),
+                    ),
+                    const SizedBox(height: 20),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: List.generate(5, (index) {
+                        final starValue = index + 1;
+                        final isFilled = starValue <= selectedStars;
+                        return GestureDetector(
+                          onTap: () {
+                            HapticFeedback.selectionClick();
+                            setSheetState(() => selectedStars = starValue);
+                          },
+                          child: Padding(
+                            padding: const EdgeInsets.symmetric(horizontal: 4),
+                            child: Icon(
+                              isFilled ? Icons.star_rounded : Icons.star_border_rounded,
+                              color: AppColors.accentGold,
+                              size: 40,
+                            ),
+                          ),
+                        );
+                      }),
+                    ),
+                    const SizedBox(height: 22),
+                    SizedBox(
+                      width: double.infinity,
+                      height: 48,
+                      child: ElevatedButton(
+                        onPressed: selectedStars == 0
+                            ? null
+                            : () {
+                                appState.setUserRating(widget.item.id, selectedStars);
+                                Navigator.pop(sheetContext);
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  const SnackBar(content: Text('Thanks for rating!')),
+                                );
+                              },
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: AppColors.netflixRed,
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                        ),
+                        child: const Text('Submit Rating'),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            );
+          },
+        );
+      },
+    );
+  }
+
+  String get _watchPartyCode {
+    final hash = widget.item.id.codeUnits.fold<int>(0, (a, b) => a + b);
+    return 'NETLIV-${(1000 + hash * 37) % 9000 + 1000}';
+  }
+
+  void _showWatchPartySheet() {
+    HapticFeedback.lightImpact();
+    final invited = <String>{};
+
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: AppColors.surfaceElevated,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      builder: (sheetContext) {
+        return StatefulBuilder(
+          builder: (context, setSheetState) {
+            return SafeArea(
+              child: Padding(
+                padding: const EdgeInsets.all(20),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        const Icon(Icons.groups_rounded, color: AppColors.netflixRed, size: 24),
+                        const SizedBox(width: 10),
+                        Text('Watch Party', style: AppTypography.titleLarge),
+                      ],
+                    ),
+                    const SizedBox(height: 6),
+                    Text(
+                      'Watch "${widget.item.title}" together, perfectly in sync.',
+                      style: AppTypography.bodyMedium,
+                    ),
+                    const SizedBox(height: 18),
+                    Container(
+                      width: double.infinity,
+                      padding: const EdgeInsets.all(14),
+                      decoration: BoxDecoration(
+                        color: AppColors.surfaceHighlight,
+                        borderRadius: BorderRadius.circular(10),
+                        border: Border.all(color: AppColors.border),
+                      ),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text('Room Code', style: AppTypography.bodySmall),
+                              const SizedBox(height: 2),
+                              Text(_watchPartyCode,
+                                  style: AppTypography.titleMedium.copyWith(letterSpacing: 1.2)),
+                            ],
+                          ),
+                          IconButton(
+                            icon: const Icon(Icons.copy_rounded, color: Colors.white70, size: 20),
+                            onPressed: () async {
+                              await Clipboard.setData(ClipboardData(text: _watchPartyCode));
+                              if (context.mounted) {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  const SnackBar(content: Text('Room code copied')),
+                                );
+                              }
+                            },
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 18),
+                    Text('Invite Friends', style: AppTypography.bodyMedium),
+                    const SizedBox(height: 10),
+                    Wrap(
+                      spacing: 14,
+                      runSpacing: 10,
+                      children: _kFriendAvatars.map((url) {
+                        final isInvited = invited.contains(url);
+                        return GestureDetector(
+                          onTap: () {
+                            HapticFeedback.selectionClick();
+                            setSheetState(() {
+                              isInvited ? invited.remove(url) : invited.add(url);
+                            });
+                          },
+                          child: Stack(
+                            clipBehavior: Clip.none,
+                            children: [
+                              Container(
+                                padding: const EdgeInsets.all(2),
+                                decoration: BoxDecoration(
+                                  shape: BoxShape.circle,
+                                  border: Border.all(
+                                    color: isInvited ? AppColors.netflixRed : Colors.transparent,
+                                    width: 2.5,
+                                  ),
+                                ),
+                                child: ShimmerImage(
+                                  imageUrl: url,
+                                  width: 48,
+                                  height: 48,
+                                  borderRadius: BorderRadius.circular(24),
+                                ),
+                              ),
+                              if (isInvited)
+                                const Positioned(
+                                  bottom: -2,
+                                  right: -2,
+                                  child: CircleAvatar(
+                                    radius: 9,
+                                    backgroundColor: AppColors.netflixRed,
+                                    child: Icon(Icons.check_rounded, size: 12, color: Colors.white),
+                                  ),
+                                ),
+                            ],
+                          ),
+                        );
+                      }).toList(),
+                    ),
+                    const SizedBox(height: 22),
+                    SizedBox(
+                      width: double.infinity,
+                      height: 50,
+                      child: ElevatedButton.icon(
+                        onPressed: () {
+                          Navigator.pop(sheetContext);
+                          HapticFeedback.heavyImpact();
+                          SimulatedPlayerModal.show(
+                            context,
+                            widget.item,
+                            isWatchParty: true,
+                            partyAvatars: invited.toList(),
+                          );
+                        },
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: AppColors.netflixRed,
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                        ),
+                        icon: const Icon(Icons.play_arrow_rounded),
+                        label: const Text('Start Watch Party'),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            );
+          },
         );
       },
     );
@@ -378,6 +628,50 @@ class _ContentDetailsScreenState extends State<ContentDetailsScreen>
                       ),
                     ],
                   ),
+                  const SizedBox(height: 12),
+
+                  // Tappable Genre Chips -> Genre Browse Grid
+                  Wrap(
+                    spacing: 8,
+                    runSpacing: 8,
+                    children: widget.item.genres.map((genre) {
+                      return InkWell(
+                        onTap: () {
+                          Navigator.of(context).push(
+                            MaterialPageRoute(
+                              builder: (_) => GenreBrowseScreen(genre: genre),
+                            ),
+                          );
+                        },
+                        borderRadius: BorderRadius.circular(20),
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                          decoration: BoxDecoration(
+                            color: AppColors.surfaceElevated,
+                            borderRadius: BorderRadius.circular(20),
+                            border: Border.all(color: AppColors.border),
+                          ),
+                          child: Text(
+                            genre,
+                            style: AppTypography.chip.copyWith(color: AppColors.textSecondary),
+                          ),
+                        ),
+                      );
+                    }).toList(),
+                  ),
+                  const SizedBox(height: 10),
+
+                  // Audience Social Proof
+                  Row(
+                    children: [
+                      const Icon(Icons.favorite_rounded, color: AppColors.netflixRed, size: 15),
+                      const SizedBox(width: 6),
+                      Text(
+                        '${widget.item.matchScore.toStringAsFixed(0)}% of viewers loved this',
+                        style: AppTypography.bodySmall.copyWith(color: AppColors.textSecondary),
+                      ),
+                    ],
+                  ),
                   const SizedBox(height: 18),
 
                   // Large Full-Width Play Button
@@ -551,18 +845,16 @@ class _ContentDetailsScreenState extends State<ContentDetailsScreen>
                         ),
                         // Rate Button
                         _buildActionIcon(
-                          icon: Icons.thumb_up_alt_outlined,
-                          label: 'Rate',
-                          color: Colors.white,
-                          onTap: () {
-                            HapticFeedback.lightImpact();
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(
-                                content: Text('Thank you for rating!'),
-                                duration: Duration(seconds: 1),
-                              ),
-                            );
-                          },
+                          icon: appState.getUserRating(widget.item.id) != null
+                              ? Icons.star_rounded
+                              : Icons.star_border_rounded,
+                          label: appState.getUserRating(widget.item.id) != null
+                              ? '${appState.getUserRating(widget.item.id)} / 5'
+                              : 'Rate',
+                          color: appState.getUserRating(widget.item.id) != null
+                              ? AppColors.accentGold
+                              : Colors.white,
+                          onTap: () => _showRatingSheet(appState),
                         ),
                         // Share Button
                         _buildActionIcon(

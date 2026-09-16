@@ -3,7 +3,8 @@ import 'package:provider/provider.dart';
 import '../constants/app_colors.dart';
 import '../state/app_state.dart';
 import '../widgets/animated_bottom_nav.dart';
-import 'coming_soon/coming_soon_screen.dart';
+import '../widgets/app_lock_gate.dart';
+import 'shorts/shorts_screen.dart';
 import 'home/home_screen.dart';
 import 'my_list/my_list_screen.dart';
 import 'profile/profile_screen.dart';
@@ -20,32 +21,34 @@ class MainNavigationScreen extends StatelessWidget {
     final screens = const [
       HomeScreen(),
       SearchScreen(),
-      ComingSoonScreen(),
+      ShortsScreen(),
       MyListScreen(),
       ProfileScreen(),
     ];
 
-    return Scaffold(
-      backgroundColor: AppColors.background,
-      body: Stack(
-        children: [
-          // Screen views
-          IndexedStack(
-            index: currentIndex,
-            children: screens,
-          ),
-
-          // Floating Animated Bottom Navigation Dock
-          Positioned(
-            left: 0,
-            right: 0,
-            bottom: 0,
-            child: AnimatedBottomNav(
-              currentIndex: currentIndex,
-              onTap: (index) => appState.setTabIndex(index),
+    return AppLockGate(
+      child: Scaffold(
+        backgroundColor: AppColors.background,
+        body: Stack(
+          children: [
+            // Screen views
+            IndexedStack(
+              index: currentIndex,
+              children: screens,
             ),
-          ),
-        ],
+
+            // Floating Animated Bottom Navigation Dock
+            Positioned(
+              left: 0,
+              right: 0,
+              bottom: 0,
+              child: AnimatedBottomNav(
+                currentIndex: currentIndex,
+                onTap: (index) => appState.setTabIndex(index),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }

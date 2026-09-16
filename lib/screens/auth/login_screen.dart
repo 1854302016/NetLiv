@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../constants/app_colors.dart';
 import '../main_navigation_screen.dart';
+import 'otp_verification_screen.dart';
 
 /// Authentic replica of the Netflix Sign-In Screen based on Image 4 reference.
 /// Features clean dark input field, solid Netflix Red 'Continue' CTA button,
@@ -31,12 +32,17 @@ class _LoginScreenState extends State<LoginScreen> {
   }
 
   void _proceedToHome() {
+    String enteredNumber = _inputController.text.trim();
+    if (enteredNumber.isEmpty) {
+      enteredNumber = "your number";
+    }
+
     HapticFeedback.mediumImpact();
     Navigator.of(context).pushReplacement(
       PageRouteBuilder(
         transitionDuration: const Duration(milliseconds: 400),
         pageBuilder: (context, animation, secondaryAnimation) =>
-            const MainNavigationScreen(),
+            OtpVerificationScreen(mobileNumber: enteredNumber),
         transitionsBuilder: (context, animation, secondaryAnimation, child) {
           return FadeTransition(
             opacity: CurvedAnimation(parent: animation, curve: Curves.easeOut),

@@ -35,23 +35,63 @@ class _HomeScreenState extends State<HomeScreen> {
     final appState = Provider.of<AppState>(context);
     final selectedCategory = appState.selectedHomeCategory;
 
-    // Filter items according to selected top category
-    List<MediaItem> banners = MockData.heroBanners;
-    List<MediaItem> topTen = MockData.topTenToday;
-    List<MediaItem> originals = MockData.netlivOriginals;
-    List<MediaItem> action = MockData.actionThrillers;
-
-    if (selectedCategory == 'TV Shows') {
-      banners = banners.where((i) => i.type == MediaType.series).toList();
-      topTen = topTen.where((i) => i.type == MediaType.series).toList();
-      originals = originals.where((i) => i.type == MediaType.series).toList();
-    } else if (selectedCategory == 'Movies') {
-      banners = banners.where((i) => i.type == MediaType.movie).toList();
-      topTen = topTen.where((i) => i.type == MediaType.movie).toList();
-      action = action.where((i) => i.type == MediaType.movie).toList();
-    } else if (selectedCategory == 'Originals') {
-      banners = banners.where((i) => i.isOriginal).toList();
+    // Filter items according to the selected top category / genre.
+    bool matchesCategory(MediaItem item) {
+      final genres = item.genres.map((g) => g.toLowerCase()).toList();
+      switch (selectedCategory) {
+        case 'All':
+        case 'All Genres':
+          return true;
+        case 'TV Shows':
+        case 'Web Series':
+          return item.type == MediaType.series;
+        case 'Movies':
+          return item.type == MediaType.movie;
+        case 'Originals':
+          return item.isOriginal;
+        case 'Action Blockbusters':
+          return genres.any((g) => g.contains('action'));
+        case 'Cyberpunk & Futuristic':
+          return genres.any((g) =>
+              g.contains('cyberpunk') || g.contains('sci-fi') || g.contains('space'));
+        case 'Crime & Dark Thrillers':
+          return genres.any((g) =>
+              g.contains('thriller') || g.contains('crime') || g.contains('heist'));
+        case 'Critically Acclaimed Cinema':
+          return item.matchScore >= 90;
+        case 'Documentary Series':
+          return genres.any((g) => g.contains('documentary'));
+        default:
+          return true;
+      }
     }
+
+    List<MediaItem> banners = MockData.heroBanners.where(matchesCategory).toList();
+    List<MediaItem> topTen = MockData.topTenToday.where(matchesCategory).toList();
+    List<MediaItem> originals = MockData.netlivOriginals.where(matchesCategory).toList();
+    List<MediaItem> action = MockData.actionThrillers.where(matchesCategory).toList();
+    List<MediaItem> trending = MockData.trendingNow.where(matchesCategory).toList();
+    List<MediaItem> continueWatching = MockData.continueWatching;
+
+    // Fall back to the unfiltered catalog when a category empties a row out,
+    // so the home page never looks broken for a niche selection.
+    if (banners.isEmpty) banners = MockData.heroBanners;
+    if (trending.isEmpty) trending = MockData.heroBanners;
+
+    // Kids Profile / Parental maturity filtering — applied last so no
+    // fallback above can ever reintroduce content a Kids profile shouldn't see.
+    bool allowed(MediaItem item) => appState.isContentAllowed(item.ageRating);
+    banners = banners.where(allowed).toList();
+    topTen = topTen.where(allowed).toList();
+    originals = originals.where(allowed).toList();
+    action = action.where(allowed).toList();
+    trending = trending.where(allowed).toList();
+    continueWatching = continueWatching.where(allowed).toList();
+
+    // "Because you watched X" personalized row, seeded from Continue Watching
+    final List<MediaItem> recommended = continueWatching.isNotEmpty
+        ? MockData.recommendationsFor(continueWatching.first).where(allowed).toList()
+        : <MediaItem>[];
 
     return Scaffold(
       backgroundColor: AppColors.background,
@@ -72,14 +112,42 @@ class _HomeScreenState extends State<HomeScreen> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   // Hero Banner Carousel
-                  BannerCarousel(items: banners.isNotEmpty ? banners : MockData.heroBanners),
+                  BannerCarousel(items: banners),
 
                   const SizedBox(height: 10),
 
-                  // Continue Watching (if user is Alex)
+                  // Kids Mode Banner
+                  if (appState.isKidsModeActive)
+                    Container(
+                      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+                      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                      decoration: BoxDecoration(
+                        color: AppColors.accentGold.withOpacity(0.12),
+                        borderRadius: BorderRadius.circular(10),
+                        border: Border.all(color: AppColors.accentGold.withOpacity(0.4)),
+                      ),
+                      child: Row(
+                        children: [
+                          const Icon(Icons.child_care_rounded, color: AppColors.accentGold, size: 20),
+                          const SizedBox(width: 10),
+                          Expanded(
+                            child: Text(
+                              "Kids Mode is on — showing family-friendly titles only.",
+                              style: TextStyle(
+                                color: Colors.white.withOpacity(0.9),
+                                fontSize: 12.5,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+
+                  // Continue Watching
                   ContentRow(
                     title: 'Continue Watching for ${appState.activeProfile.name}',
-                    items: MockData.continueWatching,
+                    items: continueWatching,
                     isLandscape: true,
                     heroPrefix: 'cw',
                   ),
@@ -92,6 +160,14 @@ class _HomeScreenState extends State<HomeScreen> {
                     heroPrefix: 'top',
                   ),
 
+                  // Because You Watched ... (personalized recommendations)
+                  if (recommended.isNotEmpty)
+                    ContentRow(
+                      title: 'Because You Watched ${continueWatching.first.title}',
+                      items: recommended,
+                      heroPrefix: 'reco',
+                    ),
+
                   // NetLiv Originals
                   ContentRow(
                     title: 'NetLiv Originals',
@@ -102,7 +178,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   // Trending Now
                   ContentRow(
                     title: 'Trending Now',
-                    items: MockData.heroBanners,
+                    items: trending,
                     heroPrefix: 'trend',
                   ),
 
@@ -116,7 +192,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   // Sci-Fi & Cyberpunk
                   ContentRow(
                     title: 'Futuristic & Sci-Fi Visions',
-                    items: MockData.heroBanners.reversed.toList(),
+                    items: MockData.heroBanners.reversed.where(allowed).toList(),
                     heroPrefix: 'scifi',
                   ),
                 ],

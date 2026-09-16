@@ -6,6 +6,7 @@ import '../constants/app_typography.dart';
 import '../models/media_item.dart';
 import '../screens/details/content_details_screen.dart';
 import 'shimmer_image.dart';
+import 'trending_badge.dart';
 
 class PosterCard extends StatefulWidget {
   final MediaItem item;
@@ -159,6 +160,14 @@ class _PosterCardState extends State<PosterCard>
                         ),
                       ),
                     ),
+                  ),
+
+                // Trending Live Badge
+                if (widget.item.isTrending)
+                  Positioned(
+                    top: 6,
+                    right: 6,
+                    child: TrendingBadge(itemId: widget.item.id, compact: !widget.isLandscape),
                   ),
 
                 // Title Overlay for Landscape / Continue Watching Cards

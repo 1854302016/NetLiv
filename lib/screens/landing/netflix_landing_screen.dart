@@ -56,12 +56,11 @@ class _NetflixLandingScreenState extends State<NetflixLandingScreen> {
 
   void _getStarted() {
     HapticFeedback.mediumImpact();
-    // Seamlessly enters the full NetLiv streaming experience
-    Navigator.of(context).pushReplacement(
+    Navigator.of(context).push(
       PageRouteBuilder(
         transitionDuration: const Duration(milliseconds: 400),
         pageBuilder: (context, animation, secondaryAnimation) =>
-            const MainNavigationScreen(),
+            const LoginScreen(),
         transitionsBuilder: (context, animation, secondaryAnimation, child) {
           return FadeTransition(
             opacity: CurvedAnimation(parent: animation, curve: Curves.easeOut),
