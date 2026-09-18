@@ -1,8 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_animate/flutter_animate.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
 import '../../constants/app_colors.dart';
+import '../../data/mock_data.dart';
+import '../../models/media_item.dart';
 import '../../state/app_state.dart';
 import '../../widgets/curved_arc_divider.dart';
 import '../../widgets/netflix_top_ten_card.dart';
@@ -20,8 +23,8 @@ class NetflixLandingScreen extends StatefulWidget {
 }
 
 class _NetflixLandingScreenState extends State<NetflixLandingScreen> {
-  final TextEditingController _topEmailController = TextEditingController();
-  final TextEditingController _bottomEmailController = TextEditingController();
+  final TextEditingController _topPhoneController = TextEditingController();
+  final TextEditingController _bottomPhoneController = TextEditingController();
   final ScrollController _scrollController = ScrollController();
   final ScrollController _trendingScrollController = ScrollController();
 
@@ -38,8 +41,8 @@ class _NetflixLandingScreenState extends State<NetflixLandingScreen> {
 
   @override
   void dispose() {
-    _topEmailController.dispose();
-    _bottomEmailController.dispose();
+    _topPhoneController.dispose();
+    _bottomPhoneController.dispose();
     _scrollController.dispose();
     _trendingScrollController.dispose();
     super.dispose();
@@ -62,13 +65,14 @@ class _NetflixLandingScreenState extends State<NetflixLandingScreen> {
     );
   }
 
-  void _getStarted() {
+  void _getStarted([String? phone]) {
     HapticFeedback.mediumImpact();
+    final input = (phone ?? _topPhoneController.text).trim();
     Navigator.of(context).push(
       PageRouteBuilder(
         transitionDuration: const Duration(milliseconds: 400),
         pageBuilder: (context, animation, secondaryAnimation) =>
-            const LoginScreen(),
+            LoginScreen(initialPhoneNumber: input.isNotEmpty ? input : null),
         transitionsBuilder: (context, animation, secondaryAnimation, child) {
           return FadeTransition(
             opacity: CurvedAnimation(parent: animation, curve: Curves.easeOut),
@@ -149,19 +153,21 @@ class _NetflixLandingScreenState extends State<NetflixLandingScreen> {
 
     return Stack(
       children: [
-        // Background Poster Grid Mosaic
+        // Background Infinite Auto-Scrolling Tilted Poster Wall
         Positioned.fill(
           child: Stack(
             fit: StackFit.expand,
             children: [
-              // Grid of real cinema poster imagery
+              // Moving Poster Marquee Wall (opposite scrolling columns)
               Opacity(
-                opacity: 0.38,
-                child: Image.network(
-                  'https://images.unsplash.com/photo-1489599849927-2ee91cede3ba?w=1200&auto=format&fit=crop&q=80',
-                  fit: BoxFit.cover,
-                  errorBuilder: (context, error, stackTrace) =>
-                      Container(color: const Color(0xFF0F0F0F)),
+                opacity: 0.45,
+                child: _AutoScrollingPosterWall(
+                  posterUrls: context
+                      .watch<AppState>()
+                      .catalog
+                      .map((m) => m.posterUrl)
+                      .where((url) => url.isNotEmpty)
+                      .toList(),
                 ),
               ),
 
@@ -174,8 +180,8 @@ class _NetflixLandingScreenState extends State<NetflixLandingScreen> {
                     stops: const [0.0, 0.25, 0.65, 0.95, 1.0],
                     colors: [
                       Colors.black.withOpacity(0.85),
-                      Colors.black.withOpacity(0.65),
-                      Colors.black.withOpacity(0.75),
+                      Colors.black.withOpacity(0.62),
+                      Colors.black.withOpacity(0.78),
                       Colors.black.withOpacity(0.96),
                       Colors.black,
                     ],
@@ -191,7 +197,7 @@ class _NetflixLandingScreenState extends State<NetflixLandingScreen> {
                     radius: 1.1,
                     colors: [
                       Colors.transparent,
-                      Colors.black.withOpacity(0.8),
+                      Colors.black.withOpacity(0.82),
                     ],
                   ),
                 ),
@@ -210,12 +216,14 @@ class _NetflixLandingScreenState extends State<NetflixLandingScreen> {
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  // NetLiv official brand logo
+                  // NetLiv official brand logo with breathing glow
                   Image.asset(
                     'assets/images/logo.png',
                     height: 38,
                     fit: BoxFit.contain,
-                  ),
+                  )
+                      .animate(onPlay: (c) => c.repeat(reverse: true))
+                      .shimmer(duration: 2500.ms, color: Colors.white12),
 
                   Row(
                     children: [
@@ -312,7 +320,10 @@ class _NetflixLandingScreenState extends State<NetflixLandingScreen> {
                   height: 1.16,
                   letterSpacing: -0.6,
                 ),
-              ),
+              )
+                  .animate()
+                  .fadeIn(duration: 650.ms, delay: 100.ms)
+                  .slideY(begin: 0.18, end: 0, curve: Curves.easeOutCubic),
 
               const SizedBox(height: 14),
 
@@ -325,13 +336,16 @@ class _NetflixLandingScreenState extends State<NetflixLandingScreen> {
                   fontWeight: FontWeight.w500,
                   color: Colors.white,
                 ),
-              ),
+              )
+                  .animate()
+                  .fadeIn(duration: 650.ms, delay: 220.ms)
+                  .slideY(begin: 0.18, end: 0, curve: Curves.easeOutCubic),
 
               const SizedBox(height: 18),
 
               // Membership call to action text
               Text(
-                'Ready to watch? Enter your email to create or restart your membership.',
+                'Ready to watch? Enter your mobile number to get started.',
                 textAlign: TextAlign.center,
                 style: GoogleFonts.inter(
                   fontSize: 14.5,
@@ -339,17 +353,27 @@ class _NetflixLandingScreenState extends State<NetflixLandingScreen> {
                   color: const Color(0xFFE2E2E2),
                   height: 1.35,
                 ),
-              ),
+              )
+                  .animate()
+                  .fadeIn(duration: 650.ms, delay: 320.ms),
 
               const SizedBox(height: 20),
 
-              // Email input field
-              _buildEmailField(_topEmailController),
+              // Mobile number input field
+              _buildPhoneField(_topPhoneController)
+                  .animate()
+                  .fadeIn(duration: 650.ms, delay: 400.ms)
+                  .scale(begin: const Offset(0.96, 0.96), end: const Offset(1, 1)),
 
               const SizedBox(height: 14),
 
-              // Red "Get Started >" CTA Button (Image 1)
-              _buildGetStartedButton(),
+              // Red "Get Started >" CTA Button with animated pulse & shimmer
+              _buildGetStartedButton(_topPhoneController)
+                  .animate()
+                  .fadeIn(duration: 650.ms, delay: 480.ms)
+                  .slideY(begin: 0.2, end: 0, curve: Curves.easeOutCubic)
+                  .animate(onPlay: (c) => c.repeat(period: 3.seconds))
+                  .shimmer(duration: 1200.ms, color: Colors.white30),
             ],
           ),
         ),
@@ -361,7 +385,16 @@ class _NetflixLandingScreenState extends State<NetflixLandingScreen> {
   // 3. TRENDING NOW SECTION
   // ---------------------------------------------------------------------------
   Widget _buildTrendingNowSection() {
-    final items = context.watch<AppState>().homeFeed?.topTen ?? [];
+    final appState = context.watch<AppState>();
+    final feedTopTen = appState.homeFeed?.topTen;
+    final catalogTrending = appState.catalog.where((m) => m.isTrending || (m.topTenRank != null && m.topTenRank! > 0)).toList();
+    final items = (feedTopTen != null && feedTopTen.isNotEmpty)
+        ? feedTopTen
+        : (catalogTrending.isNotEmpty
+            ? catalogTrending
+            : (appState.catalog.isNotEmpty
+                ? appState.catalog.take(10).toList()
+                : (appState.isContentLoading ? <MediaItem>[] : MockData.topTenToday)));
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -383,50 +416,78 @@ class _NetflixLandingScreenState extends State<NetflixLandingScreen> {
         // Horizontal Carousel with Netflix Outlined Rank Cards
         SizedBox(
           height: 195,
-          child: Stack(
-            children: [
-              ListView.builder(
-                controller: _trendingScrollController,
-                padding: const EdgeInsets.symmetric(horizontal: 20),
-                scrollDirection: Axis.horizontal,
-                physics: const BouncingScrollPhysics(),
-                itemCount: items.length,
-                itemBuilder: (context, index) {
-                  return NetflixTopTenCard(
-                    item: items[index],
-                    rank: index + 1,
-                    onTap: _getStarted,
-                  );
-                },
-              ),
-
-              // Right Chevron scroll button (matching Image 1)
-              Positioned(
-                right: 8,
-                top: 40,
-                bottom: 40,
-                child: GestureDetector(
-                  onTap: _scrollTrendingRight,
-                  child: Container(
-                    width: 32,
-                    decoration: BoxDecoration(
-                      color: Colors.black.withOpacity(0.72),
-                      borderRadius: BorderRadius.circular(6),
-                      border: Border.all(
-                        color: Colors.white24,
-                        width: 0.8,
+          child: items.isEmpty && appState.isContentLoading
+              ? ListView.builder(
+                  padding: const EdgeInsets.symmetric(horizontal: 20),
+                  scrollDirection: Axis.horizontal,
+                  physics: const NeverScrollableScrollPhysics(),
+                  itemCount: 4,
+                  itemBuilder: (context, index) {
+                    return Container(
+                      width: 155,
+                      height: 185,
+                      margin: const EdgeInsets.only(right: 12),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFF1E1E1E),
+                        borderRadius: BorderRadius.circular(10),
                       ),
+                    )
+                        .animate(onPlay: (c) => c.repeat(reverse: true))
+                        .shimmer(duration: 1200.ms, color: Colors.white10);
+                  },
+                )
+              : Stack(
+                  children: [
+                    ListView.builder(
+                      controller: _trendingScrollController,
+                      padding: const EdgeInsets.symmetric(horizontal: 20),
+                      scrollDirection: Axis.horizontal,
+                      physics: const BouncingScrollPhysics(),
+                      itemCount: items.length,
+                      itemBuilder: (context, index) {
+                        final item = items[index];
+                        return KeyedSubtree(
+                          key: ValueKey('topten_${item.id}_$index'),
+                          child: NetflixTopTenCard(
+                            item: item,
+                            rank: index + 1,
+                            onTap: _getStarted,
+                          )
+                              .animate(key: ValueKey('anim_${item.id}'))
+                              .fadeIn(duration: 500.ms, delay: (index * 70).ms)
+                              .slideX(begin: 0.25, end: 0, curve: Curves.easeOutCubic),
+                        );
+                      },
                     ),
-                    child: const Icon(
-                      Icons.chevron_right_rounded,
-                      color: Colors.white,
-                      size: 26,
-                    ),
-                  ),
+
+                    // Right Chevron scroll button
+                    if (items.length > 2)
+                      Positioned(
+                        right: 8,
+                        top: 40,
+                        bottom: 40,
+                        child: GestureDetector(
+                          onTap: _scrollTrendingRight,
+                          child: Container(
+                            width: 32,
+                            decoration: BoxDecoration(
+                              color: Colors.black.withOpacity(0.72),
+                              borderRadius: BorderRadius.circular(6),
+                              border: Border.all(
+                                color: Colors.white24,
+                                width: 0.8,
+                              ),
+                            ),
+                            child: const Icon(
+                              Icons.chevron_right_rounded,
+                              color: Colors.white,
+                              size: 26,
+                            ),
+                          ),
+                        ),
+                      ),
+                  ],
                 ),
-              ),
-            ],
-          ),
         ),
       ],
     );
@@ -458,7 +519,10 @@ class _NetflixLandingScreenState extends State<NetflixLandingScreen> {
             description:
                 'Watch on smart TVs, PlayStation, Xbox, Chromecast, Apple TV, Blu-ray players and more.',
             type: ReasonType.tv,
-          ),
+          )
+              .animate()
+              .fadeIn(duration: 500.ms, delay: 100.ms)
+              .slideY(begin: 0.12, end: 0, curve: Curves.easeOutCubic),
 
           // 2. Download your shows to watch offline
           const ReasonToJoinCard(
@@ -466,7 +530,10 @@ class _NetflixLandingScreenState extends State<NetflixLandingScreen> {
             description:
                 'Save your favourites easily and always have something to watch.',
             type: ReasonType.download,
-          ),
+          )
+              .animate()
+              .fadeIn(duration: 500.ms, delay: 180.ms)
+              .slideY(begin: 0.12, end: 0, curve: Curves.easeOutCubic),
 
           // 3. Watch everywhere
           const ReasonToJoinCard(
@@ -474,7 +541,10 @@ class _NetflixLandingScreenState extends State<NetflixLandingScreen> {
             description:
                 'Stream unlimited movies and TV shows on your phone, tablet, laptop, and TV.',
             type: ReasonType.everywhere,
-          ),
+          )
+              .animate()
+              .fadeIn(duration: 500.ms, delay: 260.ms)
+              .slideY(begin: 0.12, end: 0, curve: Curves.easeOutCubic),
 
           // 4. Create profiles for kids
           const ReasonToJoinCard(
@@ -482,8 +552,10 @@ class _NetflixLandingScreenState extends State<NetflixLandingScreen> {
             description:
                 'Send kids on adventures with their favourite characters in a space made just for them — free with your membership.',
             type: ReasonType.kids,
-          ),
-
+          )
+              .animate()
+              .fadeIn(duration: 500.ms, delay: 340.ms)
+              .slideY(begin: 0.12, end: 0, curve: Curves.easeOutCubic),
         ],
       ),
     );
@@ -566,7 +638,7 @@ class _NetflixLandingScreenState extends State<NetflixLandingScreen> {
             const SizedBox(height: 8),
 
             Text(
-              'Ready to watch? Enter your email to create or restart your membership.',
+              'Ready to watch? Enter your mobile number to get started.',
               textAlign: TextAlign.center,
               style: GoogleFonts.inter(
                 fontSize: 14,
@@ -577,14 +649,14 @@ class _NetflixLandingScreenState extends State<NetflixLandingScreen> {
             ),
             const SizedBox(height: 22),
 
-            _buildEmailField(_bottomEmailController),
+            _buildPhoneField(_bottomPhoneController),
             const SizedBox(height: 14),
 
             SizedBox(
               width: double.infinity,
               height: 50,
               child: ElevatedButton(
-                onPressed: _getStarted,
+                onPressed: () => _getStarted(_bottomPhoneController.text),
                 style: ElevatedButton.styleFrom(
                   backgroundColor: AppColors.netflixRed,
                   elevation: 0,
@@ -613,7 +685,9 @@ class _NetflixLandingScreenState extends State<NetflixLandingScreen> {
                   ],
                 ),
               ),
-            ),
+            )
+                .animate(onPlay: (c) => c.repeat(period: 3.seconds))
+                .shimmer(duration: 1200.ms, color: Colors.white30),
             const SizedBox(height: 18),
 
             // Value proposition trust badges
@@ -806,7 +880,7 @@ class _NetflixLandingScreenState extends State<NetflixLandingScreen> {
   // ---------------------------------------------------------------------------
   // HELPER WIDGETS
   // ---------------------------------------------------------------------------
-  Widget _buildEmailField(TextEditingController controller) {
+  Widget _buildPhoneField(TextEditingController controller) {
     return Container(
       height: 54,
       decoration: BoxDecoration(
@@ -823,13 +897,29 @@ class _NetflixLandingScreenState extends State<NetflixLandingScreen> {
           color: Colors.white,
           fontSize: 15,
         ),
-        keyboardType: TextInputType.emailAddress,
+        keyboardType: TextInputType.phone,
+        inputFormatters: [
+          FilteringTextInputFormatter.digitsOnly,
+          LengthLimitingTextInputFormatter(10),
+        ],
         decoration: InputDecoration(
-          hintText: 'Email address',
+          hintText: 'Mobile number',
           hintStyle: GoogleFonts.inter(
             color: const Color(0xFF8C8C8C),
             fontSize: 14.5,
           ),
+          prefixIcon: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 16),
+            child: Text(
+              '+91',
+              style: GoogleFonts.inter(
+                color: Colors.white70,
+                fontSize: 15,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ),
+          prefixIconConstraints: const BoxConstraints(minWidth: 0, minHeight: 0),
           contentPadding:
               const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
           border: InputBorder.none,
@@ -838,12 +928,12 @@ class _NetflixLandingScreenState extends State<NetflixLandingScreen> {
     );
   }
 
-  Widget _buildGetStartedButton() {
+  Widget _buildGetStartedButton([TextEditingController? controller]) {
     return Material(
       color: AppColors.netflixRed,
       borderRadius: BorderRadius.circular(4),
       child: InkWell(
-        onTap: _getStarted,
+        onTap: () => _getStarted(controller?.text),
         borderRadius: BorderRadius.circular(4),
         splashColor: AppColors.netflixRedDark,
         child: Container(
@@ -870,6 +960,129 @@ class _NetflixLandingScreenState extends State<NetflixLandingScreen> {
             ],
           ),
         ),
+      ),
+    );
+  }
+}
+
+/// Dynamic Infinite Auto-Scrolling Tilted Poster Wall (Multi-column opposite flow).
+class _AutoScrollingPosterWall extends StatefulWidget {
+  final List<String> posterUrls;
+  const _AutoScrollingPosterWall({required this.posterUrls});
+
+  @override
+  State<_AutoScrollingPosterWall> createState() => _AutoScrollingPosterWallState();
+}
+
+class _AutoScrollingPosterWallState extends State<_AutoScrollingPosterWall>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _controller;
+
+  static const List<String> _fallbackPosters = [
+    'https://images.unsplash.com/photo-1578632767115-351597cf2477?w=500&auto=format&fit=crop&q=80',
+    'https://images.unsplash.com/photo-1542751371-adc38448a05e?w=500&auto=format&fit=crop&q=80',
+    'https://images.unsplash.com/photo-1682687220063-4742bd7fd538?w=500&auto=format&fit=crop&q=80',
+    'https://images.unsplash.com/photo-1536440136628-849c177e76a1?w=500&auto=format&fit=crop&q=80',
+    'https://images.unsplash.com/photo-1518709268805-4e9042af9f23?w=500&auto=format&fit=crop&q=80',
+    'https://images.unsplash.com/photo-1509198397868-475647b2a1e5?w=500&auto=format&fit=crop&q=80',
+    'https://images.unsplash.com/photo-1489599849927-2ee91cede3ba?w=500&auto=format&fit=crop&q=80',
+    'https://images.unsplash.com/photo-1574375927938-d5a98e8ffe85?w=500&auto=format&fit=crop&q=80',
+    'https://images.unsplash.com/photo-1618336753974-aae8e04506aa?w=500&auto=format&fit=crop&q=80',
+  ];
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(
+      vsync: this,
+      duration: const Duration(seconds: 40),
+    )..repeat();
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final rawList = widget.posterUrls.isNotEmpty ? widget.posterUrls : _fallbackPosters;
+    final posters = [...rawList, ..._fallbackPosters];
+
+    // Distribute posters into 3 columns
+    final col1 = [for (int i = 0; i < posters.length; i += 3) posters[i]];
+    final col2 = [for (int i = 1; i < posters.length; i += 3) posters[i]];
+    final col3 = [for (int i = 2; i < posters.length; i += 3) posters[i]];
+
+    // Duplicate each list 4x for smooth infinite vertical repetition
+    final list1 = [...col1, ...col1, ...col1, ...col1];
+    final list2 = [...col2, ...col2, ...col2, ...col2];
+    final list3 = [...col3, ...col3, ...col3, ...col3];
+
+    return OverflowBox(
+      maxWidth: 600,
+      maxHeight: 1200,
+      alignment: Alignment.center,
+      child: Transform.scale(
+        scale: 1.28,
+        child: Transform.rotate(
+          angle: -0.09, // ~ -5 degrees tilt matching official Netflix design
+          child: AnimatedBuilder(
+            animation: _controller,
+            builder: (context, child) {
+              final t = _controller.value;
+              const singleCycleHeight = 760.0;
+              return Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  // Column 1 (Flows UP)
+                  _buildColumn(list1, -t * singleCycleHeight),
+                  const SizedBox(width: 12),
+                  // Column 2 (Flows DOWN)
+                  _buildColumn(list2, (t - 1.0) * singleCycleHeight),
+                  const SizedBox(width: 12),
+                  // Column 3 (Flows UP)
+                  _buildColumn(list3, -((t + 0.5) % 1.0) * singleCycleHeight),
+                ],
+              );
+            },
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildColumn(List<String> urls, double offsetY) {
+    return Transform.translate(
+      offset: Offset(0, offsetY),
+      child: Column(
+        children: urls.take(12).map((url) {
+          return Container(
+            width: 130,
+            height: 185,
+            margin: const EdgeInsets.only(bottom: 12),
+            decoration: BoxDecoration(
+              color: const Color(0xFF1E1E1E),
+              borderRadius: BorderRadius.circular(10),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.45),
+                  blurRadius: 10,
+                  offset: const Offset(0, 4),
+                ),
+              ],
+            ),
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(10),
+              child: Image.network(
+                url,
+                fit: BoxFit.cover,
+                errorBuilder: (context, error, stackTrace) => Container(color: const Color(0xFF222222)),
+              ),
+            ),
+          );
+        }).toList(),
       ),
     );
   }

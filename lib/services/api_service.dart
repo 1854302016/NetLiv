@@ -11,8 +11,18 @@ class ApiException implements Exception {
 }
 
 class ApiService {
+  /// Set to true to point the app at the live deployment instead of a local
+  /// backend while developing. Flip back to false (or just leave it) once
+  /// the live server has the matching backend code deployed.
+  static const bool _useLiveServer = false;
+
   static String get _baseUrl {
-    return 'https://hemtest.webultrademo.com/api';
+    if (_useLiveServer) return 'https://hemtest.webultrademo.com/api';
+    if (!kIsWeb && defaultTargetPlatform == TargetPlatform.android) {
+      // 10.0.2.2 is the Android emulator's alias for the host machine's localhost.
+      return 'http://10.0.2.2:8123/api';
+    }
+    return 'http://127.0.0.1:8123/api';
   }
 
   static Map<String, String> _headers([String? token]) => {
