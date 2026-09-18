@@ -21,6 +21,33 @@ class NotificationItem {
     this.relatedItemId,
   });
 
+  factory NotificationItem.fromJson(Map<String, dynamic> json) {
+    NotificationType parseType(String? typeStr) {
+      switch (typeStr?.toLowerCase()) {
+        case 'new_episode':
+        case 'newepisode':
+          return NotificationType.newEpisode;
+        case 'download_ready':
+        case 'downloadready':
+          return NotificationType.downloadReady;
+        case 'recommendation':
+          return NotificationType.recommendation;
+        default:
+          return NotificationType.general;
+      }
+    }
+
+    return NotificationItem(
+      id: json['id']?.toString() ?? '',
+      type: parseType(json['type'] as String?),
+      title: json['title'] as String? ?? 'Notification',
+      message: json['message'] as String? ?? '',
+      timeAgo: json['timeAgo'] as String? ?? json['created_at_human'] as String? ?? 'Just now',
+      imageUrl: json['imageUrl'] as String? ?? json['image_url'] as String?,
+      relatedItemId: json['relatedItemId']?.toString() ?? json['media_id']?.toString(),
+    );
+  }
+
   IconData get icon {
     switch (type) {
       case NotificationType.newEpisode:

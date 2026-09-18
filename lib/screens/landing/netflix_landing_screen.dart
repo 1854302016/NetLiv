@@ -1,13 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:provider/provider.dart';
 import '../../constants/app_colors.dart';
-import '../../data/mock_data.dart';
+import '../../state/app_state.dart';
 import '../../widgets/curved_arc_divider.dart';
 import '../../widgets/netflix_top_ten_card.dart';
 import '../../widgets/reason_to_join_card.dart';
 import '../auth/login_screen.dart';
-import '../main_navigation_screen.dart';
 
 /// Full, authentic replica of the official Netflix Landing Homepage based on user reference images.
 /// Includes Hero with mosaic posters & pricing, curved arc divider, outlined Top 10 carousel,
@@ -26,7 +26,15 @@ class _NetflixLandingScreenState extends State<NetflixLandingScreen> {
   final ScrollController _trendingScrollController = ScrollController();
 
   String _selectedLanguage = 'English';
-  final List<String> _languages = ['English', 'हिन्दी', 'Español'];
+  final List<String> _languages = ['English', 'हिन्दी', 'ਪੰਜਾਬੀ', 'भोजपुरी', 'Español'];
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      context.read<AppState>().loadContent();
+    });
+  }
 
   @override
   void dispose() {
@@ -353,7 +361,7 @@ class _NetflixLandingScreenState extends State<NetflixLandingScreen> {
   // 3. TRENDING NOW SECTION
   // ---------------------------------------------------------------------------
   Widget _buildTrendingNowSection() {
-    final items = MockData.topTenToday;
+    final items = context.watch<AppState>().homeFeed?.topTen ?? [];
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,

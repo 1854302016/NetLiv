@@ -14,17 +14,10 @@ void main() {
       ),
     );
 
-    // Verify that NetLiv logo RichText is rendered
-    expect(
-      find.byWidgetPredicate(
-        (widget) =>
-            widget is RichText &&
-            widget.text.toPlainText().contains('NETLIV'),
-      ),
-      findsOneWidget,
-    );
+    // Verify that the NetLiv logo image is rendered
+    expect(find.byType(Image), findsOneWidget);
 
     // Verify tagline is rendered
-    expect(find.text('STUDIO CINEMA STREAMING'), findsOneWidget);
+    expect(find.text('POCKET ME CINEMA'), findsOneWidget);
   });
 }

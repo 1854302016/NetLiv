@@ -3,7 +3,6 @@ import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import '../../constants/app_colors.dart';
 import '../../constants/app_typography.dart';
-import '../../data/plans_data.dart';
 import '../../models/user_profile.dart';
 import '../../state/app_state.dart';
 import '../../widgets/pin_entry_dialog.dart';
@@ -158,7 +157,14 @@ class ProfileScreen extends StatelessWidget {
                   _buildSettingTile(
                     icon: Icons.manage_accounts_rounded,
                     title: 'Account & Plan',
-                    trailingText: PlansData.byId(appState.selectedPlanId).name,
+                    trailingText: appState.plans.isEmpty
+                        ? ''
+                        : appState.plans
+                            .firstWhere(
+                              (p) => p.id == appState.selectedPlanId,
+                              orElse: () => appState.plans[appState.plans.length ~/ 2],
+                            )
+                            .name,
                     onTap: () {
                       Navigator.of(context).push(
                         MaterialPageRoute(
@@ -184,7 +190,9 @@ class ProfileScreen extends StatelessWidget {
                   _buildSettingTile(
                     icon: Icons.devices_rounded,
                     title: 'Manage Registered Devices',
-                    trailingText: '3 Devices Active',
+                    trailingText: appState.isLoggedIn
+                        ? '${appState.deviceCount} ${appState.deviceCount == 1 ? 'Device' : 'Devices'} Active'
+                        : 'Not signed in',
                     onTap: () {},
                   ),
 
@@ -231,7 +239,7 @@ class ProfileScreen extends StatelessWidget {
                     width: double.infinity,
                     height: 48,
                     child: OutlinedButton.icon(
-                      onPressed: () => _confirmSignOut(context),
+                      onPressed: () => _confirmSignOut(context, appState),
                       style: OutlinedButton.styleFrom(
                         foregroundColor: AppColors.error,
                         side: const BorderSide(color: AppColors.error, width: 1.2),
@@ -493,7 +501,7 @@ class ProfileScreen extends StatelessWidget {
     );
   }
 
-  void _confirmSignOut(BuildContext context) {
+  void _confirmSignOut(BuildContext context, AppState appState) {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
@@ -511,8 +519,10 @@ class ProfileScreen extends StatelessWidget {
           ),
           ElevatedButton(
             style: ElevatedButton.styleFrom(backgroundColor: AppColors.error),
-            onPressed: () {
+            onPressed: () async {
               Navigator.pop(context);
+              await appState.logout();
+              if (!context.mounted) return;
               Navigator.of(context).pushReplacement(
                 MaterialPageRoute(builder: (_) => const NetflixLandingScreen()),
               );

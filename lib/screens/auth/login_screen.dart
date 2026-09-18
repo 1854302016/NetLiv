@@ -1,7 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:provider/provider.dart';
 import '../../constants/app_colors.dart';
+import '../../services/api_service.dart';
+import '../../state/app_state.dart';
 import '../main_navigation_screen.dart';
 import 'otp_verification_screen.dart';
 
@@ -16,13 +19,13 @@ class LoginScreen extends StatefulWidget {
 }
 
 class _LoginScreenState extends State<LoginScreen> {
-  final TextEditingController _inputController =
-      TextEditingController(text: 'alex.vance@netliv.io');
+  final TextEditingController _inputController = TextEditingController();
   final FocusNode _inputFocusNode = FocusNode();
 
   bool _isHelpExpanded = false;
+  bool _isSubmitting = false;
   String _selectedLanguage = 'English';
-  final List<String> _languages = ['English', 'हिन्दी', 'Español'];
+  final List<String> _languages = ['English', 'हिन्दी', 'ਪੰਜਾਬੀ', 'भोजपुरी', 'Español'];
 
   @override
   void dispose() {
@@ -31,26 +34,52 @@ class _LoginScreenState extends State<LoginScreen> {
     super.dispose();
   }
 
-  void _proceedToHome() {
-    String enteredNumber = _inputController.text.trim();
-    if (enteredNumber.isEmpty) {
-      enteredNumber = "your number";
-    }
-
+  /// Skips straight to the app as a guest, without going through OTP login.
+  void _skipToHome() {
     HapticFeedback.mediumImpact();
     Navigator.of(context).pushReplacement(
-      PageRouteBuilder(
-        transitionDuration: const Duration(milliseconds: 400),
-        pageBuilder: (context, animation, secondaryAnimation) =>
-            OtpVerificationScreen(mobileNumber: enteredNumber),
-        transitionsBuilder: (context, animation, secondaryAnimation, child) {
-          return FadeTransition(
-            opacity: CurvedAnimation(parent: animation, curve: Curves.easeOut),
-            child: child,
-          );
-        },
-      ),
+      MaterialPageRoute(builder: (context) => const MainNavigationScreen()),
     );
+  }
+
+  Future<void> _requestOtpAndProceed() async {
+    final phone = _inputController.text.trim();
+    if (phone.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Please enter your mobile number')),
+      );
+      return;
+    }
+
+    setState(() => _isSubmitting = true);
+    try {
+      final debugOtp = await context.read<AppState>().requestOtp(phone);
+      if (!mounted) return;
+      HapticFeedback.mediumImpact();
+      Navigator.of(context).pushReplacement(
+        PageRouteBuilder(
+          transitionDuration: const Duration(milliseconds: 400),
+          pageBuilder: (context, animation, secondaryAnimation) =>
+              OtpVerificationScreen(mobileNumber: phone, debugOtp: debugOtp),
+          transitionsBuilder: (context, animation, secondaryAnimation, child) {
+            return FadeTransition(
+              opacity: CurvedAnimation(parent: animation, curve: Curves.easeOut),
+              child: child,
+            );
+          },
+        ),
+      );
+    } on ApiException catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(e.message)));
+    } catch (_) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("Couldn't reach the server. Please try again.")),
+      );
+    } finally {
+      if (mounted) setState(() => _isSubmitting = false);
+    }
   }
 
   @override
@@ -114,7 +143,7 @@ class _LoginScreenState extends State<LoginScreen> {
                       ),
                       // Skip to Guest shortcut in top right
                       TextButton(
-                        onPressed: _proceedToHome,
+                        onPressed: _skipToHome,
                         child: Text(
                           'Skip to Browse',
                           style: GoogleFonts.inter(
@@ -196,13 +225,13 @@ class _LoginScreenState extends State<LoginScreen> {
                                 child: TextField(
                                   controller: _inputController,
                                   focusNode: _inputFocusNode,
-                                  keyboardType: TextInputType.emailAddress,
+                                  keyboardType: TextInputType.phone,
                                   style: GoogleFonts.inter(
                                     color: Colors.white,
                                     fontSize: 15,
                                   ),
                                   decoration: InputDecoration(
-                                    hintText: 'Email or mobile number',
+                                    hintText: 'Mobile number',
                                     hintStyle: GoogleFonts.inter(
                                       color: const Color(0xFF8C8C8C),
                                       fontSize: 15,
@@ -220,7 +249,7 @@ class _LoginScreenState extends State<LoginScreen> {
                                 width: double.infinity,
                                 height: 48,
                                 child: ElevatedButton(
-                                  onPressed: _proceedToHome,
+                                  onPressed: _isSubmitting ? null : _requestOtpAndProceed,
                                   style: ElevatedButton.styleFrom(
                                     backgroundColor: AppColors.netflixRed,
                                     foregroundColor: Colors.white,
@@ -229,15 +258,24 @@ class _LoginScreenState extends State<LoginScreen> {
                                       borderRadius: BorderRadius.circular(4),
                                     ),
                                   ),
-                                  child: Text(
-                                    'Continue',
-                                    style: GoogleFonts.inter(
-                                      fontSize: 16,
-                                      fontWeight: FontWeight.w700,
-                                      color: Colors.white,
-                                      letterSpacing: 0.2,
-                                    ),
-                                  ),
+                                  child: _isSubmitting
+                                      ? const SizedBox(
+                                          width: 22,
+                                          height: 22,
+                                          child: CircularProgressIndicator(
+                                            strokeWidth: 2.5,
+                                            color: Colors.white,
+                                          ),
+                                        )
+                                      : Text(
+                                          'Continue',
+                                          style: GoogleFonts.inter(
+                                            fontSize: 16,
+                                            fontWeight: FontWeight.w700,
+                                            color: Colors.white,
+                                            letterSpacing: 0.2,
+                                          ),
+                                        ),
                                 ),
                               ),
                               const SizedBox(height: 24),
@@ -323,7 +361,7 @@ class _LoginScreenState extends State<LoginScreen> {
                                       const Divider(color: Color(0xFF333333), height: 16),
                                       _buildHelpItem(
                                         'Instant Demo Access (Explore as Guest)',
-                                        _proceedToHome,
+                                        _skipToHome,
                                         isHighlighted: true,
                                       ),
                                     ],

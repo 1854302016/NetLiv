@@ -14,4 +14,15 @@ class Episode {
     required this.synopsis,
     required this.thumbnailUrl,
   });
+
+  factory Episode.fromJson(Map<String, dynamic> json) {
+    return Episode(
+      episodeNumber: json['episodeNumber'] as int,
+      seasonNumber: json['seasonNumber'] as int,
+      title: json['title'] as String,
+      duration: json['duration'] as String,
+      synopsis: json['synopsis'] as String,
+      thumbnailUrl: json['thumbnailUrl'] as String,
+    );
+  }
 }

@@ -267,7 +267,9 @@ class _ProfileEditorSheetState extends State<_ProfileEditorSheet> {
     super.dispose();
   }
 
-  void _save(AppState appState) {
+  bool _isSaving = false;
+
+  Future<void> _save(AppState appState) async {
     final name = _nameController.text.trim();
     if (name.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -277,38 +279,59 @@ class _ProfileEditorSheetState extends State<_ProfileEditorSheet> {
     }
 
     HapticFeedback.mediumImpact();
-    if (widget.existing != null) {
-      appState.updateProfile(
-        UserProfile(
-          id: widget.existing!.id,
-          name: name,
-          avatarUrl: _selectedAvatar,
-          isKids: _isKids,
-          themeColor: widget.existing!.themeColor,
-        ),
+    setState(() => _isSaving = true);
+    try {
+      if (widget.existing != null) {
+        await appState.updateProfile(
+          UserProfile(
+            id: widget.existing!.id,
+            name: name,
+            avatarUrl: _selectedAvatar,
+            isKids: _isKids,
+            themeColor: widget.existing!.themeColor,
+          ),
+        );
+      } else {
+        await appState.addProfile(
+          UserProfile(
+            id: 'p-${DateTime.now().millisecondsSinceEpoch}',
+            name: name,
+            avatarUrl: _selectedAvatar,
+            isKids: _isKids,
+          ),
+        );
+      }
+      if (mounted) Navigator.pop(context);
+    } catch (_) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("Couldn't save this profile. Please try again.")),
       );
-    } else {
-      appState.addProfile(
-        UserProfile(
-          id: 'p-${DateTime.now().millisecondsSinceEpoch}',
-          name: name,
-          avatarUrl: _selectedAvatar,
-          isKids: _isKids,
-        ),
-      );
+    } finally {
+      if (mounted) setState(() => _isSaving = false);
     }
-    Navigator.pop(context);
   }
 
-  void _delete(AppState appState) {
-    final removed = appState.removeProfile(widget.existing!.id);
-    if (!removed) {
+  Future<void> _delete(AppState appState) async {
+    setState(() => _isSaving = true);
+    try {
+      final removed = await appState.removeProfile(widget.existing!.id);
+      if (!removed) {
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('At least one profile must remain')),
+        );
+        return;
+      }
+      if (mounted) Navigator.pop(context);
+    } catch (_) {
+      if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('At least one profile must remain')),
+        const SnackBar(content: Text("Couldn't delete this profile. Please try again.")),
       );
-      return;
+    } finally {
+      if (mounted) setState(() => _isSaving = false);
     }
-    Navigator.pop(context);
   }
 
   @override
@@ -411,12 +434,18 @@ class _ProfileEditorSheetState extends State<_ProfileEditorSheet> {
               width: double.infinity,
               height: 50,
               child: ElevatedButton(
-                onPressed: () => _save(appState),
+                onPressed: _isSaving ? null : () => _save(appState),
                 style: ElevatedButton.styleFrom(
                   backgroundColor: AppColors.netflixRed,
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
                 ),
-                child: Text(isEditing ? 'Save Changes' : 'Add Profile', style: AppTypography.button),
+                child: _isSaving
+                    ? const SizedBox(
+                        width: 20,
+                        height: 20,
+                        child: CircularProgressIndicator(strokeWidth: 2.5, color: Colors.white),
+                      )
+                    : Text(isEditing ? 'Save Changes' : 'Add Profile', style: AppTypography.button),
               ),
             ),
             if (isEditing) ...[
@@ -425,7 +454,7 @@ class _ProfileEditorSheetState extends State<_ProfileEditorSheet> {
                 width: double.infinity,
                 height: 50,
                 child: OutlinedButton(
-                  onPressed: () => _delete(appState),
+                  onPressed: _isSaving ? null : () => _delete(appState),
                   style: OutlinedButton.styleFrom(
                     foregroundColor: AppColors.error,
                     side: const BorderSide(color: AppColors.error),

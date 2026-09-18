@@ -21,36 +21,13 @@ class _ShortsScreenState extends State<ShortsScreen> {
   final PageController _pageController = PageController();
   int _currentIndex = 0;
 
-  final List<Map<String, String>> _mockShorts = [
-    {
-      'id': 'short-1',
-      'title': 'Neon Shadows: Tokyo 2099',
-      'subtitle': 'The biggest twist of the season.',
-      'imageUrl': 'https://images.unsplash.com/photo-1542751371-adc38448a05e?w=800&auto=format&fit=crop&q=80',
-      'videoUrl': 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4',
-    },
-    {
-      'id': 'short-2',
-      'title': 'Kerala Police Diary',
-      'subtitle': 'Behind the scenes: The chase sequence.',
-      'imageUrl': 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=800&auto=format&fit=crop&q=80',
-      'videoUrl': 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerJoyrides.mp4',
-    },
-    {
-      'id': 'short-3',
-      'title': 'Fighter Cop',
-      'subtitle': 'Action compilation #1',
-      'imageUrl': 'https://images.unsplash.com/photo-1492562080023-ab3db95bfbce?w=800&auto=format&fit=crop&q=80',
-      'videoUrl': 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerEscapes.mp4',
-    },
-    {
-      'id': 'short-4',
-      'title': 'My Magical Man',
-      'subtitle': 'VFX Breakdown.',
-      'imageUrl': 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=800&auto=format&fit=crop&q=80',
-      'videoUrl': 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ElephantsDream.mp4',
-    }
-  ];
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      context.read<AppState>().loadContent();
+    });
+  }
 
   @override
   void dispose() {
@@ -60,26 +37,63 @@ class _ShortsScreenState extends State<ShortsScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final appState = context.watch<AppState>();
+    final shorts = appState.shorts;
+
+    if (shorts.isEmpty && appState.isContentLoading) {
+      return const Scaffold(
+        backgroundColor: Colors.black,
+        body: Center(child: CircularProgressIndicator(color: AppColors.netflixRed)),
+      );
+    }
+
+    if (shorts.isEmpty) {
+      return Scaffold(
+        backgroundColor: Colors.black,
+        body: Center(
+          child: Padding(
+            padding: const EdgeInsets.all(24),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  appState.contentError ?? 'No shorts available yet.',
+                  textAlign: TextAlign.center,
+                  style: const TextStyle(color: Colors.white70),
+                ),
+                const SizedBox(height: 16),
+                ElevatedButton(
+                  onPressed: () => appState.loadContent(force: true),
+                  style: ElevatedButton.styleFrom(backgroundColor: AppColors.netflixRed),
+                  child: const Text('Retry', style: TextStyle(color: Colors.white)),
+                ),
+              ],
+            ),
+          ),
+        ),
+      );
+    }
+
     return Scaffold(
       backgroundColor: Colors.black,
       body: PageView.builder(
         controller: _pageController,
         scrollDirection: Axis.vertical,
         physics: const BouncingScrollPhysics(),
-        itemCount: _mockShorts.length,
+        itemCount: shorts.length,
         onPageChanged: (index) {
           setState(() {
             _currentIndex = index;
           });
         },
         itemBuilder: (context, index) {
-          final short = _mockShorts[index];
+          final short = shorts[index];
           return _ShortsVideoItem(
-            id: short['id']!,
-            title: short['title']!,
-            subtitle: short['subtitle']!,
-            imageUrl: short['imageUrl']!,
-            videoUrl: short['videoUrl']!,
+            id: short.id,
+            title: short.title,
+            subtitle: short.subtitle,
+            imageUrl: short.thumbnailUrl,
+            videoUrl: short.videoUrl,
             isActive: index == _currentIndex,
           );
         },

@@ -3,7 +3,6 @@ import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import '../../constants/app_colors.dart';
 import '../../constants/app_typography.dart';
-import '../../data/mock_data.dart';
 import '../../models/upcoming_item.dart';
 import '../../state/app_state.dart';
 import '../../widgets/shimmer_image.dart';
@@ -19,8 +18,17 @@ class _ComingSoonScreenState extends State<ComingSoonScreen> {
   final Map<String, bool> _mutedMap = {};
 
   @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      context.read<AppState>().loadContent();
+    });
+  }
+
+  @override
   Widget build(BuildContext context) {
     final appState = Provider.of<AppState>(context);
+    final upcoming = appState.upcomingItems;
 
     return Scaffold(
       backgroundColor: AppColors.background,
@@ -49,9 +57,9 @@ class _ComingSoonScreenState extends State<ComingSoonScreen> {
       body: ListView.builder(
         physics: const BouncingScrollPhysics(),
         padding: const EdgeInsets.only(bottom: 90, top: 8),
-        itemCount: MockData.upcomingList.length,
+        itemCount: upcoming.length,
         itemBuilder: (context, index) {
-          final item = MockData.upcomingList[index];
+          final item = upcoming[index];
           final hasReminder = appState.hasReminder(item.id);
           final isMuted = _mutedMap[item.id] ?? true;
 

@@ -1,12 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_animate/flutter_animate.dart';
+import 'package:provider/provider.dart';
 import '../../constants/app_colors.dart';
 import '../../constants/app_typography.dart';
-import '../../data/mock_data.dart';
 import '../../models/media_item.dart';
+import '../../state/app_state.dart';
+import '../../widgets/media_player_launcher.dart';
 import '../../widgets/shimmer_image.dart';
-import '../../widgets/simulated_player_modal.dart';
 import '../details/content_details_screen.dart';
 
 class SearchScreen extends StatefulWidget {
@@ -22,16 +23,6 @@ class _SearchScreenState extends State<SearchScreen> {
   String _query = '';
   String _selectedGenre = 'All';
 
-  final List<String> _genres = const [
-    'All',
-    'Sci-Fi',
-    'Action',
-    'Cyberpunk',
-    'Mystery',
-    'Thriller',
-    'Original',
-  ];
-
   @override
   void initState() {
     super.initState();
@@ -39,6 +30,9 @@ class _SearchScreenState extends State<SearchScreen> {
       setState(() {
         _query = _searchController.text.trim();
       });
+    });
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      context.read<AppState>().loadContent();
     });
   }
 
@@ -49,8 +43,8 @@ class _SearchScreenState extends State<SearchScreen> {
     super.dispose();
   }
 
-  List<MediaItem> get _filteredResults {
-    return MockData.allItems.where((item) {
+  List<MediaItem> _filteredResults(List<MediaItem> catalog) {
+    return catalog.where((item) {
       final matchesQuery = _query.isEmpty ||
           item.title.toLowerCase().contains(_query.toLowerCase()) ||
           item.genres.any(
@@ -69,6 +63,9 @@ class _SearchScreenState extends State<SearchScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final appState = context.watch<AppState>();
+    final genreChips = ['All', ...appState.genreNames, 'Original'];
+
     return Scaffold(
       backgroundColor: AppColors.background,
       body: SafeArea(
@@ -122,9 +119,9 @@ class _SearchScreenState extends State<SearchScreen> {
               child: ListView.builder(
                 scrollDirection: Axis.horizontal,
                 padding: const EdgeInsets.symmetric(horizontal: 16),
-                itemCount: _genres.length,
+                itemCount: genreChips.length,
                 itemBuilder: (context, index) {
-                  final genre = _genres[index];
+                  final genre = genreChips[index];
                   final isSelected = _selectedGenre == genre;
 
                   return Padding(
@@ -163,8 +160,11 @@ class _SearchScreenState extends State<SearchScreen> {
             // Results Content
             Expanded(
               child: _query.isEmpty && _selectedGenre == 'All'
-                  ? _buildEmptyStateContent()
-                  : _buildGridResults(),
+                  ? _buildEmptyStateContent(
+                      appState.homeFeed?.topTen ?? [],
+                      appState.trendingKeywords,
+                    )
+                  : _buildGridResults(appState.catalog),
             ),
           ],
         ),
@@ -172,7 +172,7 @@ class _SearchScreenState extends State<SearchScreen> {
     );
   }
 
-  Widget _buildEmptyStateContent() {
+  Widget _buildEmptyStateContent(List<MediaItem> topTen, List<String> trendingKeywords) {
     return SingleChildScrollView(
       physics: const BouncingScrollPhysics(),
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
@@ -185,7 +185,7 @@ class _SearchScreenState extends State<SearchScreen> {
           Wrap(
             spacing: 8,
             runSpacing: 8,
-            children: MockData.trendingKeywords.map((keyword) {
+            children: trendingKeywords.map((keyword) {
               return InkWell(
                 onTap: () {
                   HapticFeedback.lightImpact();
@@ -225,10 +225,10 @@ class _SearchScreenState extends State<SearchScreen> {
           ListView.separated(
             shrinkWrap: true,
             physics: const NeverScrollableScrollPhysics(),
-            itemCount: MockData.topTenToday.take(5).length,
+            itemCount: topTen.take(5).length,
             separatorBuilder: (context, index) => const SizedBox(height: 10),
             itemBuilder: (context, index) {
-              final item = MockData.topTenToday[index];
+              final item = topTen[index];
               return InkWell(
                 onTap: () {
                   Navigator.of(context).push(
@@ -279,7 +279,7 @@ class _SearchScreenState extends State<SearchScreen> {
                             color: Colors.white, size: 28),
                         onPressed: () {
                           HapticFeedback.mediumImpact();
-                          SimulatedPlayerModal.show(context, item);
+                          playMedia(context, item);
                         },
                       ),
                     ],
@@ -294,8 +294,8 @@ class _SearchScreenState extends State<SearchScreen> {
     );
   }
 
-  Widget _buildGridResults() {
-    final results = _filteredResults;
+  Widget _buildGridResults(List<MediaItem> catalog) {
+    final results = _filteredResults(catalog);
 
     if (results.isEmpty) {
       return Center(

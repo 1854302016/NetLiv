@@ -1,4 +1,3 @@
-import '../models/billing_record.dart';
 import '../models/episode.dart';
 import '../models/media_item.dart';
 import '../models/notification_item.dart';
@@ -596,13 +595,5 @@ class MockData {
       imageUrl: topTenToday[3].backdropUrl,
       relatedItemId: 'top-4',
     ),
-  ];
-
-  // Account & Billing history
-  static const List<BillingRecord> billingHistory = [
-    BillingRecord(date: '01 Sep 2026', planName: 'Standard', amount: '₹499', status: 'Paid'),
-    BillingRecord(date: '01 Aug 2026', planName: 'Standard', amount: '₹499', status: 'Paid'),
-    BillingRecord(date: '01 Jul 2026', planName: 'Basic', amount: '₹199', status: 'Paid'),
-    BillingRecord(date: '01 Jun 2026', planName: 'Basic', amount: '₹199', status: 'Paid'),
   ];
 }

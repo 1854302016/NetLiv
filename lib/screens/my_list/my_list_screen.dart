@@ -5,8 +5,8 @@ import '../../constants/app_colors.dart';
 import '../../constants/app_typography.dart';
 import '../../models/media_item.dart';
 import '../../state/app_state.dart';
+import '../../widgets/media_player_launcher.dart';
 import '../../widgets/shimmer_image.dart';
-import '../../widgets/simulated_player_modal.dart';
 import '../details/content_details_screen.dart';
 
 class MyListScreen extends StatefulWidget {
@@ -425,7 +425,7 @@ class _MyListScreenState extends State<MyListScreen> {
                             color: AppColors.primaryLight, size: 28),
                         onPressed: () {
                           HapticFeedback.mediumImpact();
-                          SimulatedPlayerModal.show(context, item);
+                          playMedia(context, item);
                         },
                       ),
                       // Delete Button

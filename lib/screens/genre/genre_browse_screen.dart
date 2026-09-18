@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import '../../constants/app_colors.dart';
 import '../../constants/app_typography.dart';
-import '../../data/mock_data.dart';
+import '../../state/app_state.dart';
 import '../../widgets/shimmer_image.dart';
 import '../details/content_details_screen.dart';
 
@@ -12,7 +13,8 @@ class GenreBrowseScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final items = MockData.allItems
+    final catalog = context.watch<AppState>().catalog;
+    final items = catalog
         .where((item) => item.genres.any((g) => g.toLowerCase() == genre.toLowerCase()))
         .toList();
 

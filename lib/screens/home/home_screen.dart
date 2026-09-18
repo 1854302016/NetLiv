@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../constants/app_colors.dart';
-import '../../data/mock_data.dart';
+import '../../models/home_feed.dart';
 import '../../models/media_item.dart';
 import '../../state/app_state.dart';
 import '../../widgets/banner_carousel.dart';
@@ -22,6 +22,9 @@ class _HomeScreenState extends State<HomeScreen> {
   void initState() {
     super.initState();
     _scrollController = ScrollController();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      context.read<AppState>().loadContent();
+    });
   }
 
   @override
@@ -30,10 +33,53 @@ class _HomeScreenState extends State<HomeScreen> {
     super.dispose();
   }
 
+  List<MediaItem> _itemsForGenre(HomeFeed feed, String needle) {
+    final row = feed.rowsByGenre.firstWhere(
+      (r) => r.genre.toLowerCase().contains(needle.toLowerCase()),
+      orElse: () => const GenreRow(genre: '', items: []),
+    );
+    return row.items;
+  }
+
   @override
   Widget build(BuildContext context) {
     final appState = Provider.of<AppState>(context);
     final selectedCategory = appState.selectedHomeCategory;
+    final homeFeed = appState.homeFeed;
+
+    if (homeFeed == null && appState.isContentLoading) {
+      return const Scaffold(
+        backgroundColor: AppColors.background,
+        body: Center(child: CircularProgressIndicator(color: AppColors.netflixRed)),
+      );
+    }
+
+    if (homeFeed == null && appState.contentError != null) {
+      return Scaffold(
+        backgroundColor: AppColors.background,
+        body: Center(
+          child: Padding(
+            padding: const EdgeInsets.all(24),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  appState.contentError!,
+                  textAlign: TextAlign.center,
+                  style: const TextStyle(color: Colors.white70, fontSize: 14),
+                ),
+                const SizedBox(height: 16),
+                ElevatedButton(
+                  onPressed: () => appState.loadContent(force: true),
+                  style: ElevatedButton.styleFrom(backgroundColor: AppColors.netflixRed),
+                  child: const Text('Retry', style: TextStyle(color: Colors.white)),
+                ),
+              ],
+            ),
+          ),
+        ),
+      );
+    }
 
     // Filter items according to the selected top category / genre.
     bool matchesCategory(MediaItem item) {
@@ -66,17 +112,19 @@ class _HomeScreenState extends State<HomeScreen> {
       }
     }
 
-    List<MediaItem> banners = MockData.heroBanners.where(matchesCategory).toList();
-    List<MediaItem> topTen = MockData.topTenToday.where(matchesCategory).toList();
-    List<MediaItem> originals = MockData.netlivOriginals.where(matchesCategory).toList();
-    List<MediaItem> action = MockData.actionThrillers.where(matchesCategory).toList();
-    List<MediaItem> trending = MockData.trendingNow.where(matchesCategory).toList();
-    List<MediaItem> continueWatching = MockData.continueWatching;
+    final feed = homeFeed!;
+    List<MediaItem> banners = feed.banners.where(matchesCategory).toList();
+    List<MediaItem> topTen = feed.topTen.where(matchesCategory).toList();
+    List<MediaItem> originals = feed.originals.where(matchesCategory).toList();
+    List<MediaItem> action = _itemsForGenre(feed, 'action').where(matchesCategory).toList();
+    List<MediaItem> trending = feed.trending.where(matchesCategory).toList();
+    List<MediaItem> scifi = _itemsForGenre(feed, 'sci-fi').where(matchesCategory).toList();
+    List<MediaItem> continueWatching = appState.continueWatching;
 
     // Fall back to the unfiltered catalog when a category empties a row out,
     // so the home page never looks broken for a niche selection.
-    if (banners.isEmpty) banners = MockData.heroBanners;
-    if (trending.isEmpty) trending = MockData.heroBanners;
+    if (banners.isEmpty) banners = feed.banners;
+    if (trending.isEmpty) trending = feed.banners;
 
     // Kids Profile / Parental maturity filtering — applied last so no
     // fallback above can ever reintroduce content a Kids profile shouldn't see.
@@ -86,11 +134,12 @@ class _HomeScreenState extends State<HomeScreen> {
     originals = originals.where(allowed).toList();
     action = action.where(allowed).toList();
     trending = trending.where(allowed).toList();
+    scifi = scifi.where(allowed).toList();
     continueWatching = continueWatching.where(allowed).toList();
 
     // "Because you watched X" personalized row, seeded from Continue Watching
     final List<MediaItem> recommended = continueWatching.isNotEmpty
-        ? MockData.recommendationsFor(continueWatching.first).where(allowed).toList()
+        ? appState.recommendationsFor(continueWatching.first).where(allowed).toList()
         : <MediaItem>[];
 
     return Scaffold(
@@ -101,9 +150,7 @@ class _HomeScreenState extends State<HomeScreen> {
           RefreshIndicator(
             color: AppColors.netflixRed,
             backgroundColor: AppColors.surfaceElevated,
-            onRefresh: () async {
-              await Future.delayed(const Duration(milliseconds: 600));
-            },
+            onRefresh: () => appState.loadContent(force: true),
             child: SingleChildScrollView(
               controller: _scrollController,
               physics: const BouncingScrollPhysics(),
@@ -145,12 +192,13 @@ class _HomeScreenState extends State<HomeScreen> {
                     ),
 
                   // Continue Watching
-                  ContentRow(
-                    title: 'Continue Watching for ${appState.activeProfile.name}',
-                    items: continueWatching,
-                    isLandscape: true,
-                    heroPrefix: 'cw',
-                  ),
+                  if (continueWatching.isNotEmpty)
+                    ContentRow(
+                      title: 'Continue Watching for ${appState.activeProfile.name}',
+                      items: continueWatching,
+                      isLandscape: true,
+                      heroPrefix: 'cw',
+                    ),
 
                   // Top 10 in NetLiv Today
                   ContentRow(
@@ -192,7 +240,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   // Sci-Fi & Cyberpunk
                   ContentRow(
                     title: 'Futuristic & Sci-Fi Visions',
-                    items: MockData.heroBanners.reversed.where(allowed).toList(),
+                    items: scifi,
                     heroPrefix: 'scifi',
                   ),
                 ],

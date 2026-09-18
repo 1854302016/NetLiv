@@ -20,4 +20,18 @@ class UpcomingItem {
     required this.genres,
     this.isOriginal = true,
   });
+
+  factory UpcomingItem.fromJson(Map<String, dynamic> json) {
+    return UpcomingItem(
+      id: json['id'] as String,
+      title: json['title'] as String,
+      description: json['description'] as String,
+      releaseDateText: json['releaseDateText'] as String,
+      monthBadge: json['monthBadge'] as String,
+      dayBadge: json['dayBadge'] as String,
+      videoTeaserBackdrop: json['videoTeaserBackdrop'] as String,
+      genres: List<String>.from(json['genres'] as List? ?? []),
+      isOriginal: json['isOriginal'] as bool? ?? true,
+    );
+  }
 }

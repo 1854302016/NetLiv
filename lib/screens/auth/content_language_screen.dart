@@ -23,6 +23,8 @@ class _ContentLanguageScreenState extends State<ContentLanguageScreen> {
     'ಕನ್ನಡ (Kannada)',
     'मराठी (Marathi)',
     'বাংলা (Bengali)',
+    'ਪੰਜਾਬੀ (Punjabi)',
+    'भोजपुरी (Bhojpuri)',
   ];
 
   void _proceedToPlanSelection() {

@@ -4,7 +4,6 @@ import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import '../constants/app_colors.dart';
 import '../constants/app_typography.dart';
-import '../data/mock_data.dart';
 import '../models/media_item.dart';
 import '../state/app_state.dart';
 import 'shimmer_image.dart';
@@ -61,6 +60,8 @@ class _SimulatedPlayerModalState extends State<SimulatedPlayerModal> {
     'తెలుగు (Telugu)',
     'മലയാളം (Malayalam)',
     'ಕನ್ನಡ (Kannada)',
+    'ਪੰਜਾਬੀ (Punjabi)',
+    'भोजपुरी (Bhojpuri)',
   ];
   Timer? _progressTimer;
   Timer? _hideControlsTimer;
@@ -72,7 +73,7 @@ class _SimulatedPlayerModalState extends State<SimulatedPlayerModal> {
 
   MediaItem? get _nextEpisodeItem {
     if (widget.item.type != MediaType.series) return null;
-    final related = MockData.recommendationsFor(widget.item, count: 1);
+    final related = context.read<AppState>().recommendationsFor(widget.item, count: 1);
     return related.isNotEmpty ? related.first : null;
   }
 
@@ -90,6 +91,9 @@ class _SimulatedPlayerModalState extends State<SimulatedPlayerModal> {
   @override
   void initState() {
     super.initState();
+    if (widget.item.watchProgress != null && widget.item.watchProgress! > 0.02) {
+      _currentPosition = widget.item.watchProgress! * _totalDuration;
+    }
     // Enable simulated video progress
     _progressTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
       if (_isPlaying && mounted) {
@@ -750,9 +754,13 @@ class _SimulatedPlayerModalState extends State<SimulatedPlayerModal> {
                   onTap: () {
                     HapticFeedback.selectionClick();
                     setState(() {
-                      if (_playbackSpeed == 1.0) _playbackSpeed = 1.25;
-                      else if (_playbackSpeed == 1.25) _playbackSpeed = 1.5;
-                      else _playbackSpeed = 1.0;
+                      if (_playbackSpeed == 1.0) {
+                        _playbackSpeed = 1.25;
+                      } else if (_playbackSpeed == 1.25) {
+                        _playbackSpeed = 1.5;
+                      } else {
+                        _playbackSpeed = 1.0;
+                      }
                     });
                   },
                 ),

@@ -6,8 +6,11 @@ import 'constants/app_colors.dart';
 import 'screens/splash/splash_screen.dart';
 import 'state/app_state.dart';
 
-void main() {
+import 'services/preferences_service.dart';
+
+void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  await PreferencesService.init();
 
   // Set immersive dark status & navigation bar
   SystemChrome.setSystemUIOverlayStyle(

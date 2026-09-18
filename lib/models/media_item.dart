@@ -22,6 +22,7 @@ class MediaItem {
   final List<String> creators;
   final List<Episode>? episodes;
   final List<String>? tags;
+  final String? videoUrl;
 
   const MediaItem({
     required this.id,
@@ -43,5 +44,33 @@ class MediaItem {
     this.creators = const [],
     this.episodes,
     this.tags,
+    this.videoUrl,
   });
+
+  factory MediaItem.fromJson(Map<String, dynamic> json) {
+    final episodesJson = json['episodes'] as List?;
+    return MediaItem(
+      id: json['id'] as String,
+      title: json['title'] as String,
+      description: json['description'] as String,
+      posterUrl: json['posterUrl'] as String,
+      backdropUrl: json['backdropUrl'] as String,
+      genres: List<String>.from(json['genres'] as List? ?? []),
+      releaseYear: json['releaseYear'] as int,
+      ageRating: json['ageRating'] as String,
+      durationOrSeasons: json['durationOrSeasons'] as String,
+      matchScore: (json['matchScore'] as num).toDouble(),
+      type: json['type'] == 'series' ? MediaType.series : MediaType.movie,
+      isOriginal: json['isOriginal'] as bool? ?? false,
+      isTrending: json['isTrending'] as bool? ?? false,
+      topTenRank: json['topTenRank'] as int?,
+      cast: List<String>.from(json['cast'] as List? ?? []),
+      creators: List<String>.from(json['creators'] as List? ?? []),
+      episodes: episodesJson != null && episodesJson.isNotEmpty
+          ? episodesJson.map((e) => Episode.fromJson(e as Map<String, dynamic>)).toList()
+          : null,
+      tags: json['tags'] != null ? List<String>.from(json['tags'] as List) : null,
+      videoUrl: json['videoUrl'] as String?,
+    );
+  }
 }

@@ -2,32 +2,70 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:provider/provider.dart';
 import '../../constants/app_colors.dart';
+import '../../services/api_service.dart';
+import '../../state/app_state.dart';
+import '../main_navigation_screen.dart';
 import 'content_language_screen.dart';
 
 class OtpVerificationScreen extends StatefulWidget {
   final String mobileNumber;
-  const OtpVerificationScreen({super.key, required this.mobileNumber});
+  /// Only populated outside production, until a real SMS gateway is wired up
+  /// on the backend. Shown on-screen so the flow is testable without one.
+  final String? debugOtp;
+  const OtpVerificationScreen({super.key, required this.mobileNumber, this.debugOtp});
 
   @override
   State<OtpVerificationScreen> createState() => _OtpVerificationScreenState();
 }
 
 class _OtpVerificationScreenState extends State<OtpVerificationScreen> {
-  final int _otpLength = 4;
+  final int _otpLength = 6;
+  bool _isSubmitting = false;
+  bool _isResending = false;
   final List<TextEditingController> _controllers = [];
   final List<FocusNode> _focusNodes = [];
   int _timerSeconds = 30;
   Timer? _timer;
+  late String? _debugOtp;
 
   @override
   void initState() {
     super.initState();
+    _debugOtp = widget.debugOtp;
     for (int i = 0; i < _otpLength; i++) {
       _controllers.add(TextEditingController());
       _focusNodes.add(FocusNode());
     }
     _startTimer();
+  }
+
+  Future<void> _resendOtp() async {
+    setState(() => _isResending = true);
+    try {
+      final debugOtp = await context.read<AppState>().requestOtp(widget.mobileNumber);
+      if (!mounted) return;
+      for (final c in _controllers) {
+        c.clear();
+      }
+      _focusNodes[0].requestFocus();
+      setState(() => _debugOtp = debugOtp);
+      _startTimer();
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('A new OTP has been sent.')),
+      );
+    } on ApiException catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(e.message)));
+    } catch (_) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("Couldn't reach the server. Please try again.")),
+      );
+    } finally {
+      if (mounted) setState(() => _isResending = false);
+    }
   }
 
   void _startTimer() {
@@ -65,7 +103,7 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen> {
     }
   }
 
-  void _verifyAndProceed() {
+  Future<void> _verifyAndProceed() async {
     bool isComplete = _controllers.every((c) => c.text.isNotEmpty);
     if (!isComplete) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -73,21 +111,41 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen> {
       );
       return;
     }
-    
-    HapticFeedback.mediumImpact();
-    Navigator.of(context).pushReplacement(
-      PageRouteBuilder(
-        transitionDuration: const Duration(milliseconds: 400),
-        pageBuilder: (context, animation, secondaryAnimation) =>
-            const ContentLanguageScreen(),
-        transitionsBuilder: (context, animation, secondaryAnimation, child) {
-          return FadeTransition(
-            opacity: CurvedAnimation(parent: animation, curve: Curves.easeOut),
-            child: child,
-          );
-        },
-      ),
-    );
+
+    final otp = _controllers.map((c) => c.text).join();
+
+    setState(() => _isSubmitting = true);
+    try {
+      final isNewUser = await context.read<AppState>().verifyOtp(otp);
+      if (!mounted) return;
+      HapticFeedback.mediumImpact();
+      // Returning users who already finished language + plan selection once
+      // go straight into the app instead of seeing onboarding again.
+      Navigator.of(context).pushReplacement(
+        PageRouteBuilder(
+          transitionDuration: const Duration(milliseconds: 400),
+          pageBuilder: (context, animation, secondaryAnimation) => isNewUser
+              ? const ContentLanguageScreen()
+              : const MainNavigationScreen(),
+          transitionsBuilder: (context, animation, secondaryAnimation, child) {
+            return FadeTransition(
+              opacity: CurvedAnimation(parent: animation, curve: Curves.easeOut),
+              child: child,
+            );
+          },
+        ),
+      );
+    } on ApiException catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(e.message)));
+    } catch (_) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("Couldn't reach the server. Please try again.")),
+      );
+    } finally {
+      if (mounted) setState(() => _isSubmitting = false);
+    }
   }
 
   @override
@@ -137,22 +195,33 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen> {
                     ),
                     const SizedBox(height: 14),
                     Text(
-                      'We have sent a 4-digit code to\n${widget.mobileNumber}',
+                      'We have sent a 6-digit code to\n${widget.mobileNumber}',
                       style: GoogleFonts.inter(
                         fontSize: 15,
                         color: const Color(0xFFB3B3B3),
                         height: 1.4,
                       ),
                     ),
+                    if (_debugOtp != null) ...[
+                      const SizedBox(height: 10),
+                      Text(
+                        'Test mode — OTP is $_debugOtp (no SMS gateway configured yet)',
+                        style: GoogleFonts.inter(
+                          fontSize: 12,
+                          color: AppColors.netflixRed,
+                          fontStyle: FontStyle.italic,
+                        ),
+                      ),
+                    ],
                     const SizedBox(height: 40),
-                    
+
                     // OTP Input Fields
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: List.generate(_otpLength, (index) {
                         return Container(
-                          width: 65,
-                          height: 75,
+                          width: 48,
+                          height: 62,
                           decoration: BoxDecoration(
                             color: const Color(0xFF161616),
                             borderRadius: BorderRadius.circular(8),
@@ -199,9 +268,9 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen> {
                               ),
                             )
                           : TextButton(
-                              onPressed: _startTimer,
+                              onPressed: _isResending ? null : _resendOtp,
                               child: Text(
-                                'Resend OTP',
+                                _isResending ? 'Sending...' : 'Resend OTP',
                                 style: GoogleFonts.inter(
                                   fontSize: 15,
                                   fontWeight: FontWeight.w600,
@@ -222,7 +291,7 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen> {
                 width: double.infinity,
                 height: 52,
                 child: ElevatedButton(
-                  onPressed: _verifyAndProceed,
+                  onPressed: _isSubmitting ? null : _verifyAndProceed,
                   style: ElevatedButton.styleFrom(
                     backgroundColor: AppColors.netflixRed,
                     foregroundColor: Colors.white,
@@ -231,15 +300,21 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen> {
                       borderRadius: BorderRadius.circular(4),
                     ),
                   ),
-                  child: Text(
-                    'Verify & Proceed',
-                    style: GoogleFonts.inter(
-                      fontSize: 16,
-                      fontWeight: FontWeight.w700,
-                      color: Colors.white,
-                      letterSpacing: 0.2,
-                    ),
-                  ),
+                  child: _isSubmitting
+                      ? const SizedBox(
+                          width: 22,
+                          height: 22,
+                          child: CircularProgressIndicator(strokeWidth: 2.5, color: Colors.white),
+                        )
+                      : Text(
+                          'Verify & Proceed',
+                          style: GoogleFonts.inter(
+                            fontSize: 16,
+                            fontWeight: FontWeight.w700,
+                            color: Colors.white,
+                            letterSpacing: 0.2,
+                          ),
+                        ),
                 ),
               ),
             ),

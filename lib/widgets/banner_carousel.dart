@@ -8,8 +8,8 @@ import '../constants/app_typography.dart';
 import '../models/media_item.dart';
 import '../screens/details/content_details_screen.dart';
 import '../state/app_state.dart';
+import 'media_player_launcher.dart';
 import 'shimmer_image.dart';
-import 'simulated_player_modal.dart';
 
 class BannerCarousel extends StatefulWidget {
   final List<MediaItem> items;
@@ -264,7 +264,7 @@ class _BannerCarouselState extends State<BannerCarousel> {
                 child: InkWell(
                   onTap: () {
                     HapticFeedback.heavyImpact();
-                    SimulatedPlayerModal.show(context, item);
+                    playMedia(context, item);
                   },
                   borderRadius: BorderRadius.circular(28),
                   child: Container(

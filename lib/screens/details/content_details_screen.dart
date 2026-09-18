@@ -5,11 +5,10 @@ import 'package:provider/provider.dart';
 import 'package:share_plus/share_plus.dart';
 import '../../constants/app_colors.dart';
 import '../../constants/app_typography.dart';
-import '../../data/mock_data.dart';
 import '../../models/media_item.dart';
 import '../../state/app_state.dart';
+import '../../widgets/media_player_launcher.dart';
 import '../../widgets/shimmer_image.dart';
-import '../../widgets/simulated_player_modal.dart';
 import '../genre/genre_browse_screen.dart';
 
 const List<String> _kFriendAvatars = [
@@ -368,7 +367,7 @@ class _ContentDetailsScreenState extends State<ContentDetailsScreen>
                         onPressed: () {
                           Navigator.pop(sheetContext);
                           HapticFeedback.heavyImpact();
-                          SimulatedPlayerModal.show(
+                          playMedia(
                             context,
                             widget.item,
                             isWatchParty: true,
@@ -482,7 +481,7 @@ class _ContentDetailsScreenState extends State<ContentDetailsScreen>
                     child: GestureDetector(
                       onTap: () {
                         HapticFeedback.heavyImpact();
-                        SimulatedPlayerModal.show(context, widget.item);
+                        playMedia(context, widget.item);
                       },
                       child: Container(
                         padding: const EdgeInsets.all(16),
@@ -681,7 +680,7 @@ class _ContentDetailsScreenState extends State<ContentDetailsScreen>
                     child: ElevatedButton.icon(
                       onPressed: () {
                         HapticFeedback.heavyImpact();
-                        SimulatedPlayerModal.show(context, widget.item);
+                        playMedia(context, widget.item);
                       },
                       style: ElevatedButton.styleFrom(
                         backgroundColor: Colors.white,
@@ -1016,7 +1015,7 @@ class _ContentDetailsScreenState extends State<ContentDetailsScreen>
             return InkWell(
               onTap: () {
                 HapticFeedback.mediumImpact();
-                SimulatedPlayerModal.show(context, widget.item);
+                playMedia(context, widget.item);
               },
               borderRadius: BorderRadius.circular(10),
               child: Container(
@@ -1108,7 +1107,8 @@ class _ContentDetailsScreenState extends State<ContentDetailsScreen>
   }
 
   Widget _buildMoreLikeThisSection() {
-    final related = MockData.allItems
+    final catalog = context.watch<AppState>().catalog;
+    final related = catalog
         .where((item) => item.id != widget.item.id)
         .take(9)
         .toList();
@@ -1159,7 +1159,7 @@ class _ContentDetailsScreenState extends State<ContentDetailsScreen>
     return InkWell(
       onTap: () {
         HapticFeedback.lightImpact();
-        SimulatedPlayerModal.show(context, widget.item);
+        playMedia(context, widget.item);
       },
       borderRadius: BorderRadius.circular(10),
       child: Container(

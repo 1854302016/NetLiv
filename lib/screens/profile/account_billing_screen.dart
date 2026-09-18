@@ -2,18 +2,35 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../constants/app_colors.dart';
 import '../../constants/app_typography.dart';
-import '../../data/mock_data.dart';
-import '../../data/plans_data.dart';
 import '../../state/app_state.dart';
 import '../auth/subscription_plan_screen.dart';
 
-class AccountBillingScreen extends StatelessWidget {
+class AccountBillingScreen extends StatefulWidget {
   const AccountBillingScreen({super.key});
+
+  @override
+  State<AccountBillingScreen> createState() => _AccountBillingScreenState();
+}
+
+class _AccountBillingScreenState extends State<AccountBillingScreen> {
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      context.read<AppState>().loadBilling();
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
     final appState = Provider.of<AppState>(context);
-    final plan = PlansData.byId(appState.selectedPlanId);
+    final plans = appState.plans;
+    final plan = plans.isEmpty
+        ? null
+        : plans.firstWhere(
+            (p) => p.id == appState.selectedPlanId,
+            orElse: () => plans[plans.length ~/ 2],
+          );
 
     return Scaffold(
       backgroundColor: AppColors.background,
@@ -26,6 +43,7 @@ class AccountBillingScreen extends StatelessWidget {
         padding: const EdgeInsets.all(16),
         children: [
           // Current Plan Card
+          if (plan != null)
           Container(
             padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
@@ -86,18 +104,41 @@ class AccountBillingScreen extends StatelessWidget {
 
           Text('Payment Method', style: AppTypography.titleMedium),
           const SizedBox(height: 10),
-          _buildTile(
-            context,
-            icon: Icons.credit_card_rounded,
-            title: 'Visa •••• 4242',
-            subtitle: 'Expires 09/28',
-            trailing: 'Update',
-          ),
+          if (appState.paymentMethod != null)
+            _buildTile(
+              context,
+              icon: Icons.credit_card_rounded,
+              title: appState.paymentMethod!.displayTitle,
+              subtitle: 'Used for your last payment',
+              trailing: 'Update',
+            )
+          else
+            _buildTile(
+              context,
+              icon: Icons.credit_card_off_rounded,
+              title: 'No payment method yet',
+              subtitle: 'Added automatically after your first payment',
+            ),
           const SizedBox(height: 28),
 
           Text('Billing History', style: AppTypography.titleMedium),
           const SizedBox(height: 10),
-          ...MockData.billingHistory.map(
+          if (appState.billingLoaded && appState.billingHistory.isEmpty)
+            Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: AppColors.surfaceElevated,
+                borderRadius: BorderRadius.circular(10),
+                border: Border.all(color: AppColors.borderSubtle),
+              ),
+              child: Text(
+                appState.isLoggedIn
+                    ? 'No payments yet. Your invoices will show up here after your first successful payment.'
+                    : 'Sign in to see your billing history.',
+                style: AppTypography.bodySmall.copyWith(color: AppColors.textMuted),
+              ),
+            ),
+          ...appState.billingHistory.map(
             (record) => Container(
               margin: const EdgeInsets.only(bottom: 10),
               padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
@@ -123,7 +164,9 @@ class AccountBillingScreen extends StatelessWidget {
                       Text(record.amount, style: AppTypography.titleMedium.copyWith(fontSize: 14)),
                       Text(
                         record.status,
-                        style: AppTypography.bodySmall.copyWith(color: AppColors.accentEmerald),
+                        style: AppTypography.bodySmall.copyWith(
+                          color: record.status == 'Paid' ? AppColors.accentEmerald : AppColors.error,
+                        ),
                       ),
                     ],
                   ),
@@ -145,11 +188,13 @@ class AccountBillingScreen extends StatelessWidget {
     String? trailing,
   }) {
     return InkWell(
-      onTap: () {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Payment method management coming soon')),
-        );
-      },
+      onTap: trailing == null
+          ? null
+          : () {
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(content: Text('Payment method management coming soon')),
+              );
+            },
       borderRadius: BorderRadius.circular(10),
       child: Container(
         padding: const EdgeInsets.all(14),
