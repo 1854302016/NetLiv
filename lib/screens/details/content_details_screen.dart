@@ -51,10 +51,11 @@ class _ContentDetailsScreenState extends State<ContentDetailsScreen>
     super.dispose();
   }
 
-  void _simulateDownload() async {
+  void _handleDownload() async {
     final appState = Provider.of<AppState>(context, listen: false);
     if (appState.isDownloaded(widget.item.id)) {
-      appState.removeDownload(widget.item.id);
+      await appState.removeDownload(widget.item.id);
+      if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Removed from Downloads')),
       );
@@ -63,38 +64,56 @@ class _ContentDetailsScreenState extends State<ContentDetailsScreen>
 
     setState(() {
       _isDownloading = true;
-      _downloadProgress = 0.1;
+      _downloadProgress = 0.01;
     });
 
-    for (int i = 2; i <= 10; i++) {
-      await Future.delayed(const Duration(milliseconds: 150));
-      if (!mounted) return;
-      setState(() {
-        _downloadProgress = i / 10.0;
-      });
-    }
-
-    if (mounted) {
-      setState(() {
-        _isDownloading = false;
-      });
-      appState.toggleDownload(widget.item);
-      HapticFeedback.mediumImpact();
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          backgroundColor: AppColors.surfaceElevated,
-          content: Row(
-            children: [
-              const Icon(Icons.check_circle_rounded, color: AppColors.success, size: 20),
-              const SizedBox(width: 8),
-              Text(
-                'Downloaded "${widget.item.title}" for offline viewing',
-                style: const TextStyle(color: Colors.white),
-              ),
-            ],
-          ),
-        ),
+    try {
+      await appState.downloadMediaItem(
+        widget.item,
+        onProgress: (prog) {
+          if (mounted) {
+            setState(() {
+              _downloadProgress = prog;
+            });
+          }
+        },
       );
+
+      if (mounted) {
+        setState(() {
+          _isDownloading = false;
+        });
+        HapticFeedback.mediumImpact();
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            backgroundColor: AppColors.surfaceElevated,
+            content: Row(
+              children: [
+                const Icon(Icons.check_circle_rounded, color: AppColors.success, size: 20),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    'Downloaded "${widget.item.title}" for offline viewing',
+                    style: const TextStyle(color: Colors.white),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _isDownloading = false;
+        });
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            backgroundColor: AppColors.netflixRed,
+            content: Text('Download failed: $e'),
+          ),
+        );
+      }
     }
   }
 
@@ -708,7 +727,7 @@ class _ContentDetailsScreenState extends State<ContentDetailsScreen>
                     width: double.infinity,
                     height: 48,
                     child: ElevatedButton.icon(
-                      onPressed: _simulateDownload,
+                      onPressed: _handleDownload,
                       style: ElevatedButton.styleFrom(
                         backgroundColor: AppColors.surfaceElevated,
                         foregroundColor: Colors.white,
@@ -1015,7 +1034,7 @@ class _ContentDetailsScreenState extends State<ContentDetailsScreen>
             return InkWell(
               onTap: () {
                 HapticFeedback.mediumImpact();
-                playMedia(context, widget.item);
+                playEpisode(context, widget.item, episodeIndex: index);
               },
               borderRadius: BorderRadius.circular(10),
               child: Container(
@@ -1159,7 +1178,12 @@ class _ContentDetailsScreenState extends State<ContentDetailsScreen>
     return InkWell(
       onTap: () {
         HapticFeedback.lightImpact();
-        playMedia(context, widget.item);
+        playMedia(
+          context,
+          widget.item,
+          title: widget.item.title,
+          subtitle: '$title • $duration',
+        );
       },
       borderRadius: BorderRadius.circular(10),
       child: Container(

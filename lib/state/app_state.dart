@@ -10,6 +10,7 @@ import '../models/subscription_plan.dart';
 import '../models/upcoming_item.dart';
 import '../models/user_profile.dart';
 import '../services/api_service.dart';
+import '../services/download_service.dart';
 import '../services/preferences_service.dart';
 
 class AppState extends ChangeNotifier {
@@ -61,6 +62,9 @@ class AppState extends ChangeNotifier {
 
     // Populate initial continue watching
     _rebuildContinueWatchingFromLocal();
+
+    // Load offline downloaded videos
+    unawaited(loadDownloadedItems());
 
     // If logged in, fetch live profiles & continue watching in background
     if (_authToken != null) {
@@ -657,29 +661,46 @@ class AppState extends ChangeNotifier {
     notifyListeners();
   }
 
-  // Downloads
+  // Downloads & Offline Storage
   final List<MediaItem> _downloads = [];
-  List<MediaItem> get downloads => List.unmodifiable(_downloads);
+  List<MediaItem> get downloads => _offlineDownloads.isNotEmpty
+      ? _offlineDownloads.map((d) => d.mediaItem).toList()
+      : List.unmodifiable(_downloads);
+
+  List<DownloadedItem> _offlineDownloads = [];
+  List<DownloadedItem> get offlineDownloads => List.unmodifiable(_offlineDownloads);
+
+  Future<void> loadDownloadedItems() async {
+    _offlineDownloads = await DownloadService.getDownloadedItems();
+    notifyListeners();
+  }
 
   bool isDownloaded(String id) {
-    return _downloads.any((item) => item.id == id);
+    return _offlineDownloads.any((item) => item.mediaItem.id == id) ||
+        _downloads.any((item) => item.id == id);
+  }
+
+  Future<void> downloadMediaItem(
+    MediaItem item, {
+    Function(double progress)? onProgress,
+  }) async {
+    await DownloadService.downloadItem(item, onProgress: onProgress);
+    await loadDownloadedItems();
+  }
+
+  Future<void> removeDownload(String id) async {
+    await DownloadService.deleteDownload(id);
+    _downloads.removeWhere((item) => item.id == id);
+    PreferencesService.setDownloadIds(_downloads.map((m) => m.id).toList());
+    await loadDownloadedItems();
   }
 
   void toggleDownload(MediaItem item) {
-    final index = _downloads.indexWhere((element) => element.id == item.id);
-    if (index >= 0) {
-      _downloads.removeAt(index);
+    if (isDownloaded(item.id)) {
+      unawaited(removeDownload(item.id));
     } else {
-      _downloads.insert(0, item);
+      unawaited(downloadMediaItem(item));
     }
-    PreferencesService.setDownloadIds(_downloads.map((m) => m.id).toList());
-    notifyListeners();
-  }
-
-  void removeDownload(String id) {
-    _downloads.removeWhere((item) => item.id == id);
-    PreferencesService.setDownloadIds(_downloads.map((m) => m.id).toList());
-    notifyListeners();
   }
 
   // Reminders for Upcoming Content

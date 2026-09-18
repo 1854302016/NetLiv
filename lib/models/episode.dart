@@ -5,6 +5,7 @@ class Episode {
   final String duration;
   final String synopsis;
   final String thumbnailUrl;
+  final String? videoUrl;
 
   const Episode({
     required this.episodeNumber,
@@ -13,6 +14,7 @@ class Episode {
     required this.duration,
     required this.synopsis,
     required this.thumbnailUrl,
+    this.videoUrl,
   });
 
   factory Episode.fromJson(Map<String, dynamic> json) {
@@ -23,6 +25,7 @@ class Episode {
       duration: json['duration'] as String,
       synopsis: json['synopsis'] as String,
       thumbnailUrl: json['thumbnailUrl'] as String,
+      videoUrl: json['videoUrl'] as String?,
     );
   }
 }

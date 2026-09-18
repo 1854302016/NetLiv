@@ -351,10 +351,10 @@ class _MyListScreenState extends State<MyListScreen> {
           const SizedBox(height: 24),
 
           // Downloaded Items List
-          Text('Downloaded Items', style: AppTypography.titleMedium),
+          Text('Downloaded Items (${appState.offlineDownloads.length})', style: AppTypography.titleMedium),
           const SizedBox(height: 12),
 
-          if (downloads.isEmpty)
+          if (appState.offlineDownloads.isEmpty && downloads.isEmpty)
             Container(
               padding: const EdgeInsets.symmetric(vertical: 36),
               alignment: Alignment.center,
@@ -365,10 +365,89 @@ class _MyListScreenState extends State<MyListScreen> {
                   const SizedBox(height: 12),
                   Text('No downloaded videos yet', style: AppTypography.titleMedium),
                   const SizedBox(height: 4),
-                  Text('Download your favorite shows to watch on the go.',
+                  Text('Download your favorite shows to watch offline on the go.',
                       style: AppTypography.bodySmall),
                 ],
               ),
+            )
+          else if (appState.offlineDownloads.isNotEmpty)
+            ListView.separated(
+              shrinkWrap: true,
+              physics: const NeverScrollableScrollPhysics(),
+              itemCount: appState.offlineDownloads.length,
+              separatorBuilder: (context, index) => const SizedBox(height: 12),
+              itemBuilder: (context, index) {
+                final downloaded = appState.offlineDownloads[index];
+                final item = downloaded.mediaItem;
+                return Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: AppColors.surfaceElevated,
+                    borderRadius: BorderRadius.circular(10),
+                    border: Border.all(color: AppColors.borderSubtle),
+                  ),
+                  child: Row(
+                    children: [
+                      // Thumbnail
+                      ClipRRect(
+                        borderRadius: BorderRadius.circular(6),
+                        child: ShimmerImage(
+                          imageUrl: item.backdropUrl,
+                          width: 100,
+                          height: 60,
+                          fit: BoxFit.cover,
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      // Info
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              item.title,
+                              style: AppTypography.titleMedium
+                                  .copyWith(fontSize: 14),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                            const SizedBox(height: 4),
+                            Text(
+                              '${item.durationOrSeasons}  •  ${downloaded.formattedSize}  •  Offline Ready',
+                              style: AppTypography.bodySmall
+                                  .copyWith(color: AppColors.textMuted),
+                            ),
+                          ],
+                        ),
+                      ),
+                      // Offline Play Button
+                      IconButton(
+                        icon: const Icon(Icons.play_circle_fill_rounded,
+                            color: AppColors.netflixRed, size: 28),
+                        onPressed: () {
+                          HapticFeedback.mediumImpact();
+                          playMedia(
+                            context,
+                            item,
+                            videoUrl: downloaded.localFilePath,
+                            title: item.title,
+                            subtitle: 'Offline Download • ${downloaded.formattedSize}',
+                          );
+                        },
+                      ),
+                      // Delete Button
+                      IconButton(
+                        icon: const Icon(Icons.delete_outline_rounded,
+                            color: AppColors.textMuted, size: 22),
+                        onPressed: () {
+                          HapticFeedback.lightImpact();
+                          appState.removeDownload(item.id);
+                        },
+                      ),
+                    ],
+                  ),
+                );
+              },
             )
           else
             ListView.separated(
@@ -412,7 +491,7 @@ class _MyListScreenState extends State<MyListScreen> {
                             ),
                             const SizedBox(height: 4),
                             Text(
-                              '${item.durationOrSeasons}  •  1.4 GB  •  4K',
+                              '${item.durationOrSeasons}  •  45 MB  •  HD',
                               style: AppTypography.bodySmall
                                   .copyWith(color: AppColors.textMuted),
                             ),
