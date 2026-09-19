@@ -83,6 +83,7 @@ class AppState extends ChangeNotifier {
   String? _userGender;
   int? _userAge;
   bool get isLoggedIn => _authToken != null;
+  String? get authToken => _authToken;
   String? get phoneNumber => _phoneNumber;
   String? get userName => _userName;
   String? get userGender => _userGender;

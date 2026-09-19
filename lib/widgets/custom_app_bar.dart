@@ -5,7 +5,10 @@ import 'package:provider/provider.dart';
 import '../constants/app_colors.dart';
 import '../constants/app_typography.dart';
 import '../screens/notifications/notifications_screen.dart';
+import '../screens/auditions/audition_hub_screen.dart';
+import '../screens/auth/content_language_screen.dart';
 import '../state/app_state.dart';
+import 'cast_device_picker_modal.dart';
 import 'netliv_logo.dart';
 import 'shimmer_image.dart';
 
@@ -93,19 +96,7 @@ class CustomAppBar extends StatelessWidget {
               // Cast button
               IconButton(
                 icon: const Icon(Icons.cast_rounded, color: Colors.white, size: 21),
-                onPressed: () {
-                  HapticFeedback.lightImpact();
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                      backgroundColor: AppColors.surfaceElevated,
-                      content: Text(
-                        'Searching for NetLiv Studio Cast displays...',
-                        style: TextStyle(color: Colors.white),
-                      ),
-                      duration: Duration(seconds: 2),
-                    ),
-                  );
-                },
+                onPressed: () => CastDevicePickerModal.show(context),
               ),
               // Search button
               IconButton(
@@ -150,12 +141,14 @@ class CustomAppBar extends StatelessWidget {
           ),
           const SizedBox(height: 8),
 
-          // Horizontal Category Filter Pills
+          // Horizontal Category Filter Pills with Auditions & Languages
           SingleChildScrollView(
             scrollDirection: Axis.horizontal,
             physics: const BouncingScrollPhysics(),
             child: Row(
               children: [
+                _buildAuditionPill(context),
+                _buildLanguagePill(context),
                 _buildCategoryPill(context, 'All', appState),
                 _buildCategoryPill(context, 'TV Shows', appState),
                 _buildCategoryPill(context, 'Movies', appState),
@@ -166,6 +159,105 @@ class CustomAppBar extends StatelessWidget {
             ),
           ),
         ],
+      ),
+    );
+  }
+
+  Widget _buildAuditionPill(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.only(right: 8),
+      child: InkWell(
+        onTap: () {
+          HapticFeedback.lightImpact();
+          Navigator.of(context).push(
+            MaterialPageRoute(builder: (_) => const AuditionHubScreen()),
+          );
+        },
+        borderRadius: BorderRadius.circular(20),
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6.5),
+          decoration: BoxDecoration(
+            gradient: const LinearGradient(
+              colors: [Color(0xFFE50914), Color(0xFFFF5252)],
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+            ),
+            borderRadius: BorderRadius.circular(20),
+            boxShadow: [
+              BoxShadow(
+                color: const Color(0xFFE50914).withOpacity(0.35),
+                blurRadius: 8,
+                offset: const Offset(0, 2),
+              ),
+            ],
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Icon(
+                Icons.stars_rounded,
+                size: 15,
+                color: Colors.white,
+              ),
+              const SizedBox(width: 5),
+              Text(
+                'Auditions 🎭',
+                style: GoogleFonts.inter(
+                  color: Colors.white,
+                  fontWeight: FontWeight.w800,
+                  fontSize: 12.5,
+                  letterSpacing: -0.2,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildLanguagePill(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.only(right: 8),
+      child: InkWell(
+        onTap: () {
+          HapticFeedback.lightImpact();
+          Navigator.of(context).push(
+            MaterialPageRoute(builder: (_) => const ContentLanguageScreen()),
+          );
+        },
+        borderRadius: BorderRadius.circular(20),
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6.5),
+          decoration: BoxDecoration(
+            color: const Color(0xFF1F1F1F),
+            borderRadius: BorderRadius.circular(20),
+            border: Border.all(
+              color: const Color(0xFF424242),
+              width: 1,
+            ),
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Icon(
+                Icons.translate_rounded,
+                size: 14,
+                color: Color(0xFFE5E5E5),
+              ),
+              const SizedBox(width: 5),
+              Text(
+                'Language',
+                style: GoogleFonts.inter(
+                  color: const Color(0xFFE5E5E5),
+                  fontWeight: FontWeight.w600,
+                  fontSize: 12.5,
+                  letterSpacing: -0.2,
+                ),
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }

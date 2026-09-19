@@ -8,6 +8,7 @@ import '../../state/app_state.dart';
 import '../../widgets/pin_entry_dialog.dart';
 import '../../widgets/shimmer_image.dart';
 import '../landing/netflix_landing_screen.dart';
+import '../auditions/audition_hub_screen.dart';
 import 'account_billing_screen.dart';
 import 'app_lock_screen.dart';
 import 'parental_controls_screen.dart';
@@ -204,6 +205,19 @@ class ProfileScreen extends StatelessWidget {
                       Navigator.of(context).push(
                         MaterialPageRoute(
                           builder: (_) => const ParentalControlsScreen(),
+                        ),
+                      );
+                    },
+                  ),
+
+                  _buildSettingTile(
+                    icon: Icons.movie_creation_rounded,
+                    title: 'Auditions & Casting Hub',
+                    trailingText: 'Apply Now 🌟',
+                    onTap: () {
+                      Navigator.of(context).push(
+                        MaterialPageRoute(
+                          builder: (_) => const AuditionHubScreen(),
                         ),
                       );
                     },
