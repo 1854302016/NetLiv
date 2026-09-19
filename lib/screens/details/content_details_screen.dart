@@ -119,6 +119,9 @@ class _ContentDetailsScreenState extends State<ContentDetailsScreen>
 
   void _showShareSheet() {
     HapticFeedback.lightImpact();
+    final shareLink = 'https://www.netliveplus.com/watch/${widget.item.id}';
+    final shareText = '🍿 Watch "${widget.item.title}" on NetLiv Cinema!\n⭐ ${widget.item.matchScore.toStringAsFixed(0)}% Match | ${widget.item.releaseYear} | ${widget.item.durationOrSeasons}\n\n🎬 Stream now in Ultra HD: $shareLink';
+
     showModalBottomSheet(
       context: context,
       backgroundColor: AppColors.surfaceElevated,
@@ -147,14 +150,21 @@ class _ContentDetailsScreenState extends State<ContentDetailsScreen>
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceAround,
                   children: [
+                    _buildShareIcon(Icons.chat_bubble_outline_rounded, 'WhatsApp', () {
+                      Navigator.pop(context);
+                      Share.share(
+                        shareText,
+                        subject: 'Watch "${widget.item.title}" on NetLiv Cinema',
+                      );
+                    }),
                     _buildShareIcon(Icons.link_rounded, 'Copy Link', () async {
                       Navigator.pop(context);
                       await Clipboard.setData(
-                        ClipboardData(text: 'https://netliv.app/title/${widget.item.id}'),
+                        ClipboardData(text: shareLink),
                       );
                       if (context.mounted) {
                         ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(content: Text('Link copied to clipboard')),
+                          const SnackBar(content: Text('Watch link copied to clipboard')),
                         );
                       }
                     }),
@@ -165,7 +175,8 @@ class _ContentDetailsScreenState extends State<ContentDetailsScreen>
                     _buildShareIcon(Icons.share_rounded, 'More', () {
                       Navigator.pop(context);
                       Share.share(
-                        'Check out "${widget.item.title}" on NetLiv! https://netliv.app/title/${widget.item.id}',
+                        shareText,
+                        subject: 'Watch "${widget.item.title}" on NetLiv Cinema',
                       );
                     }),
                   ],

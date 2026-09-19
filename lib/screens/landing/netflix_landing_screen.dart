@@ -415,15 +415,21 @@ class _NetflixLandingScreenState extends State<NetflixLandingScreen> {
 
               const SizedBox(height: 14),
 
-              // Price line: Starts at ₹149. Cancel at any time.
-              Text(
-                'Starts at ₹149. Cancel at any time.',
-                textAlign: TextAlign.center,
-                style: GoogleFonts.inter(
-                  fontSize: 16.5,
-                  fontWeight: FontWeight.w500,
-                  color: Colors.white,
-                ),
+              // Price line: Starts at dynamic plan price from Admin API (e.g. ₹49)
+              Builder(
+                builder: (context) {
+                  final appState = Provider.of<AppState>(context);
+                  final lowestPrice = appState.plans.isNotEmpty ? appState.plans.first.price : '₹49';
+                  return Text(
+                    'Starts at $lowestPrice. Cancel at any time.',
+                    textAlign: TextAlign.center,
+                    style: GoogleFonts.inter(
+                      fontSize: 16.5,
+                      fontWeight: FontWeight.w500,
+                      color: Colors.white,
+                    ),
+                  );
+                },
               )
                   .animate()
                   .fadeIn(duration: 650.ms, delay: 220.ms)
@@ -917,15 +923,21 @@ class _NetflixLandingScreenState extends State<NetflixLandingScreen> {
             const SizedBox(height: 18),
 
             // Value proposition trust badges
-            Wrap(
-              alignment: WrapAlignment.center,
-              spacing: 16,
-              runSpacing: 8,
-              children: [
-                _buildTrustBadge('Cancel anytime'),
-                _buildTrustBadge('Starts at ₹149/mo'),
-                _buildTrustBadge('Watch on all devices'),
-              ],
+            Builder(
+              builder: (context) {
+                final appState = Provider.of<AppState>(context);
+                final lowestPrice = appState.plans.isNotEmpty ? appState.plans.first.price : '₹49';
+                return Wrap(
+                  alignment: WrapAlignment.center,
+                  spacing: 16,
+                  runSpacing: 8,
+                  children: [
+                    _buildTrustBadge('Cancel anytime'),
+                    _buildTrustBadge('Starts at $lowestPrice/mo'),
+                    _buildTrustBadge('Watch on all devices'),
+                  ],
+                );
+              },
             ),
           ],
         ),

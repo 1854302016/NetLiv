@@ -59,6 +59,12 @@ class FullVideoPlayerScreen extends StatefulWidget {
   State<FullVideoPlayerScreen> createState() => _FullVideoPlayerScreenState();
 }
 
+enum VideoFitMode {
+  fit, // Original aspect ratio (Fit)
+  fill, // Zoom to Fill (Full screen, no black bars)
+  stretch, // Stretch to screen corners
+}
+
 class _FullVideoPlayerScreenState extends State<FullVideoPlayerScreen>
     with SingleTickerProviderStateMixin {
   VideoPlayerController? _controller;
@@ -67,8 +73,21 @@ class _FullVideoPlayerScreenState extends State<FullVideoPlayerScreen>
   bool _showControls = true;
   bool _isLocked = false;
   double _playbackSpeed = 1.0;
+  VideoFitMode _fitMode = VideoFitMode.fill; // Default to Zoom to Fill (Full Screen)
+  String? _fitModeToastMessage;
+  Timer? _toastTimer;
   Timer? _hideControlsTimer;
   Timer? _syncTimer;
+
+  // Gesture HUD states (MX Player / VLC / Netflix style)
+  double _volume = 0.8;
+  double _brightness = 0.8;
+  bool _showVolumeHud = false;
+  bool _showBrightnessHud = false;
+  bool _isScrubbing = false;
+  Duration _scrubTarget = Duration.zero;
+  int _scrubDiffSeconds = 0;
+  Timer? _hudTimer;
 
   // Double tap feedback
   bool _showLeftSeekRipple = false;
@@ -91,11 +110,12 @@ class _FullVideoPlayerScreenState extends State<FullVideoPlayerScreen>
   @override
   void initState() {
     super.initState();
-    // Prefer landscape or vertical auto-rotation
+    // Enable complete immersive edge-to-edge full screen
+    SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersiveSticky);
     SystemChrome.setPreferredOrientations([
-      DeviceOrientation.portraitUp,
       DeviceOrientation.landscapeLeft,
       DeviceOrientation.landscapeRight,
+      DeviceOrientation.portraitUp,
     ]);
 
     _episodeList = widget.episodes ?? widget.item.episodes ?? [];
@@ -301,6 +321,76 @@ class _FullVideoPlayerScreenState extends State<FullVideoPlayerScreen>
         setState(() {
           _showLeftSeekRipple = false;
           _showRightSeekRipple = false;
+        });
+      }
+    });
+  }
+
+  void _onVerticalDragLeft(DragUpdateDetails details) {
+    if (_isLocked) return;
+    setState(() {
+      _brightness = (_brightness - details.delta.dy / 180).clamp(0.05, 1.0);
+      _showBrightnessHud = true;
+      _showVolumeHud = false;
+      _isScrubbing = false;
+    });
+    _resetHudTimer();
+  }
+
+  void _onVerticalDragRight(DragUpdateDetails details) {
+    if (_isLocked) return;
+    final newVol = (_volume - details.delta.dy / 180).clamp(0.0, 1.0);
+    setState(() {
+      _volume = newVol;
+      _showVolumeHud = true;
+      _showBrightnessHud = false;
+      _isScrubbing = false;
+    });
+    _controller?.setVolume(_volume);
+    _resetHudTimer();
+  }
+
+  void _onHorizontalDragStart(DragStartDetails details) {
+    if (_isLocked || _controller == null || !_isInitialized) return;
+    setState(() {
+      _isScrubbing = true;
+      _scrubTarget = _controller!.value.position;
+      _scrubDiffSeconds = 0;
+      _showVolumeHud = false;
+      _showBrightnessHud = false;
+    });
+  }
+
+  void _onHorizontalDragUpdate(DragUpdateDetails details) {
+    if (!_isScrubbing || _controller == null) return;
+    final deltaSec = (details.delta.dx * 0.8).toInt();
+    final dur = _controller!.value.duration;
+    final newTarget = _scrubTarget + Duration(seconds: deltaSec);
+    final clamped = newTarget < Duration.zero
+        ? Duration.zero
+        : (newTarget > dur ? dur : newTarget);
+    setState(() {
+      _scrubDiffSeconds += deltaSec;
+      _scrubTarget = clamped;
+    });
+  }
+
+  void _onHorizontalDragEnd(DragEndDetails details) {
+    if (!_isScrubbing || _controller == null) return;
+    _controller!.seekTo(_scrubTarget);
+    setState(() {
+      _isScrubbing = false;
+    });
+    _scheduleHideControls();
+  }
+
+  void _resetHudTimer() {
+    _hudTimer?.cancel();
+    _hudTimer = Timer(const Duration(milliseconds: 1400), () {
+      if (mounted) {
+        setState(() {
+          _showVolumeHud = false;
+          _showBrightnessHud = false;
         });
       }
     });
@@ -587,11 +677,78 @@ class _FullVideoPlayerScreenState extends State<FullVideoPlayerScreen>
     );
   }
 
+  void _toggleFitMode() {
+    HapticFeedback.mediumImpact();
+    setState(() {
+      switch (_fitMode) {
+        case VideoFitMode.fill:
+          _fitMode = VideoFitMode.stretch;
+          _fitModeToastMessage = '↔️ Stretched (100% Screen)';
+          break;
+        case VideoFitMode.stretch:
+          _fitMode = VideoFitMode.fit;
+          _fitModeToastMessage = '📺 Original Fit (Aspect Ratio)';
+          break;
+        case VideoFitMode.fit:
+          _fitMode = VideoFitMode.fill;
+          _fitModeToastMessage = '🔍 Zoom to Fill (Full Screen)';
+          break;
+      }
+    });
+    _toastTimer?.cancel();
+    _toastTimer = Timer(const Duration(milliseconds: 1800), () {
+      if (mounted) {
+        setState(() => _fitModeToastMessage = null);
+      }
+    });
+    _scheduleHideControls();
+  }
+
+  Widget _buildVideoDisplay(VideoPlayerController controller) {
+    final videoSize = controller.value.size;
+    final aspect = controller.value.aspectRatio > 0 ? controller.value.aspectRatio : (16 / 9);
+
+    if (_fitMode == VideoFitMode.fill) {
+      return SizedBox.expand(
+        child: FittedBox(
+          fit: BoxFit.cover,
+          clipBehavior: Clip.hardEdge,
+          child: SizedBox(
+            width: videoSize.width > 0 ? videoSize.width : 1920,
+            height: videoSize.height > 0 ? videoSize.height : 1080,
+            child: VideoPlayer(controller),
+          ),
+        ),
+      );
+    } else if (_fitMode == VideoFitMode.stretch) {
+      return SizedBox.expand(
+        child: FittedBox(
+          fit: BoxFit.fill,
+          child: SizedBox(
+            width: videoSize.width > 0 ? videoSize.width : 1920,
+            height: videoSize.height > 0 ? videoSize.height : 1080,
+            child: VideoPlayer(controller),
+          ),
+        ),
+      );
+    } else {
+      // Default: fit
+      return Center(
+        child: AspectRatio(
+          aspectRatio: aspect,
+          child: VideoPlayer(controller),
+        ),
+      );
+    }
+  }
+
   @override
   void dispose() {
+    SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
     SystemChrome.setPreferredOrientations([
       DeviceOrientation.portraitUp,
     ]);
+    _toastTimer?.cancel();
     _syncProgress();
     _syncTimer?.cancel();
     _hideControlsTimer?.cancel();
@@ -607,62 +764,221 @@ class _FullVideoPlayerScreenState extends State<FullVideoPlayerScreen>
 
     return Scaffold(
       backgroundColor: Colors.black,
-      body: SafeArea(
-        child: Stack(
-          fit: StackFit.expand,
-          children: [
-            // Video Display
-            if (_hasError)
-              Center(
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    const Icon(Icons.error_outline_rounded, color: AppColors.netflixRed, size: 48),
-                    const SizedBox(height: 12),
-                    Text(
-                      "Couldn't load video stream.",
-                      style: GoogleFonts.inter(color: Colors.white, fontSize: 16),
-                    ),
-                    const SizedBox(height: 16),
-                    ElevatedButton(
-                      onPressed: () => _initPlayerForUrl(_activeVideoUrl),
-                      style: ElevatedButton.styleFrom(backgroundColor: AppColors.netflixRed),
-                      child: const Text('Retry', style: TextStyle(color: Colors.white)),
-                    ),
-                  ],
-                ),
-              )
-            else if (_isInitialized && controller != null)
-              Center(
-                child: AspectRatio(
-                  aspectRatio: controller.value.aspectRatio,
-                  child: VideoPlayer(controller),
-                ),
-              )
-            else
-              const Center(child: CircularProgressIndicator(color: AppColors.netflixRed)),
+      body: Stack(
+        fit: StackFit.expand,
+        children: [
+          // Edge-to-Edge 100% True Full Screen Video Display
+          if (_hasError)
+            Center(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Icon(Icons.error_outline_rounded, color: AppColors.netflixRed, size: 48),
+                  const SizedBox(height: 12),
+                  Text(
+                    "Couldn't load video stream.",
+                    style: GoogleFonts.inter(color: Colors.white, fontSize: 16),
+                  ),
+                  const SizedBox(height: 16),
+                  ElevatedButton(
+                    onPressed: () => _initPlayerForUrl(_activeVideoUrl),
+                    style: ElevatedButton.styleFrom(backgroundColor: AppColors.netflixRed),
+                    child: const Text('Retry', style: TextStyle(color: Colors.white)),
+                  ),
+                ],
+              ),
+            )
+          else if (_isInitialized && controller != null)
+            Positioned.fill(
+              child: _buildVideoDisplay(controller),
+            )
+          else
+            const Center(child: CircularProgressIndicator(color: AppColors.netflixRed)),
 
-            // Double Tap Touch Detection Layer (Left = -10s, Right = +10s)
+            // Gesture Touch Detection Layer (Left Vertical = Brightness, Right Vertical = Volume, Horizontal = Seek, Double Tap = +/-10s)
             Row(
               children: [
+                // Left Screen Half: Brightness & Rewind
                 Expanded(
                   child: GestureDetector(
                     behavior: HitTestBehavior.translucent,
                     onTap: _toggleControls,
                     onDoubleTap: () => _handleDoubleTapSeek(false),
+                    onVerticalDragUpdate: _onVerticalDragLeft,
+                    onHorizontalDragStart: _onHorizontalDragStart,
+                    onHorizontalDragUpdate: _onHorizontalDragUpdate,
+                    onHorizontalDragEnd: _onHorizontalDragEnd,
                     child: Container(color: Colors.transparent),
                   ),
                 ),
+                // Right Screen Half: Volume & Forward
                 Expanded(
                   child: GestureDetector(
                     behavior: HitTestBehavior.translucent,
                     onTap: _toggleControls,
                     onDoubleTap: () => _handleDoubleTapSeek(true),
+                    onVerticalDragUpdate: _onVerticalDragRight,
+                    onHorizontalDragStart: _onHorizontalDragStart,
+                    onHorizontalDragUpdate: _onHorizontalDragUpdate,
+                    onHorizontalDragEnd: _onHorizontalDragEnd,
                     child: Container(color: Colors.transparent),
                   ),
                 ),
               ],
             ),
+
+            // Brightness HUD Overlay (Left Side)
+            if (_showBrightnessHud)
+              Positioned(
+                left: 50,
+                top: 0,
+                bottom: 0,
+                child: Center(
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 20),
+                    decoration: BoxDecoration(
+                      color: Colors.black.withOpacity(0.8),
+                      borderRadius: BorderRadius.circular(16),
+                      border: Border.all(color: Colors.white24),
+                    ),
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(
+                          _brightness > 0.5 ? Icons.brightness_7_rounded : Icons.brightness_4_rounded,
+                          color: Colors.white,
+                          size: 26,
+                        ),
+                        const SizedBox(height: 14),
+                        SizedBox(
+                          height: 110,
+                          width: 8,
+                          child: ClipRRect(
+                            borderRadius: BorderRadius.circular(4),
+                            child: RotatedBox(
+                              quarterTurns: 3,
+                              child: LinearProgressIndicator(
+                                value: _brightness,
+                                backgroundColor: Colors.white24,
+                                valueColor: const AlwaysStoppedAnimation<Color>(Colors.white),
+                              ),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(height: 12),
+                        Text(
+                          '${(_brightness * 100).round()}%',
+                          style: const TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.bold),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+
+            // Volume HUD Overlay (Right Side)
+            if (_showVolumeHud)
+              Positioned(
+                right: 50,
+                top: 0,
+                bottom: 0,
+                child: Center(
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 20),
+                    decoration: BoxDecoration(
+                      color: Colors.black.withOpacity(0.8),
+                      borderRadius: BorderRadius.circular(16),
+                      border: Border.all(color: Colors.white24),
+                    ),
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(
+                          _volume == 0
+                              ? Icons.volume_off_rounded
+                              : (_volume < 0.5 ? Icons.volume_down_rounded : Icons.volume_up_rounded),
+                          color: Colors.white,
+                          size: 26,
+                        ),
+                        const SizedBox(height: 14),
+                        SizedBox(
+                          height: 110,
+                          width: 8,
+                          child: ClipRRect(
+                            borderRadius: BorderRadius.circular(4),
+                            child: RotatedBox(
+                              quarterTurns: 3,
+                              child: LinearProgressIndicator(
+                                value: _volume,
+                                backgroundColor: Colors.white24,
+                                valueColor: const AlwaysStoppedAnimation<Color>(AppColors.netflixRed),
+                              ),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(height: 12),
+                        Text(
+                          '${(_volume * 100).round()}%',
+                          style: const TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.bold),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+
+            // Horizontal Scrub Preview HUD Overlay
+            if (_isScrubbing && controller != null)
+              Center(
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+                  decoration: BoxDecoration(
+                    color: Colors.black.withOpacity(0.88),
+                    borderRadius: BorderRadius.circular(16),
+                    border: Border.all(color: AppColors.netflixRed, width: 1.5),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withOpacity(0.7),
+                        blurRadius: 20,
+                      ),
+                    ],
+                  ),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(
+                            _scrubDiffSeconds >= 0 ? Icons.fast_forward_rounded : Icons.fast_rewind_rounded,
+                            color: Colors.white,
+                            size: 24,
+                          ),
+                          const SizedBox(width: 8),
+                          Text(
+                            '${_scrubDiffSeconds >= 0 ? "+" : ""}${_scrubDiffSeconds}s',
+                            style: const TextStyle(
+                              color: AppColors.netflixRed,
+                              fontSize: 18,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 6),
+                      Text(
+                        '${_formatDuration(_scrubTarget)} / ${_formatDuration(controller.value.duration)}',
+                        style: GoogleFonts.inter(
+                          color: Colors.white,
+                          fontSize: 15,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+
 
             // Left Seek Ripple Overlay (-10s)
             if (_showLeftSeekRipple)
@@ -794,6 +1110,37 @@ class _FullVideoPlayerScreenState extends State<FullVideoPlayerScreen>
                 ),
               ),
 
+            // Fit Mode Change Toast Overlay
+            if (_fitModeToastMessage != null)
+              Center(
+                child: AnimatedOpacity(
+                  duration: const Duration(milliseconds: 200),
+                  opacity: _fitModeToastMessage != null ? 1.0 : 0.0,
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 22, vertical: 12),
+                    decoration: BoxDecoration(
+                      color: Colors.black.withOpacity(0.85),
+                      borderRadius: BorderRadius.circular(24),
+                      border: Border.all(color: AppColors.netflixRed, width: 1.5),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withOpacity(0.6),
+                          blurRadius: 16,
+                        ),
+                      ],
+                    ),
+                    child: Text(
+                      _fitModeToastMessage!,
+                      style: GoogleFonts.inter(
+                        color: Colors.white,
+                        fontWeight: FontWeight.w700,
+                        fontSize: 14,
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+
             // Full Player UI Controls (when not locked)
             if (!_isLocked && (_showControls || !_isInitialized)) ...[
               // Gradient Shade
@@ -813,106 +1160,125 @@ class _FullVideoPlayerScreenState extends State<FullVideoPlayerScreen>
                 ),
               ),
 
-              // Top Bar
+              // Top Bar with SafeArea
               Positioned(
-                top: 8,
-                left: 8,
-                right: 8,
-                child: Row(
-                  children: [
-                    IconButton(
-                      icon: const Icon(Icons.arrow_back_ios_new_rounded, color: Colors.white),
-                      onPressed: () {
-                        HapticFeedback.lightImpact();
-                        Navigator.of(context).pop();
-                      },
-                    ),
-                    const SizedBox(width: 4),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Text(
-                            _displayTitle,
-                            style: GoogleFonts.inter(
-                              color: Colors.white,
-                              fontWeight: FontWeight.w700,
-                              fontSize: 16,
-                            ),
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                          if (_displaySubtitle != null)
-                            Text(
-                              _displaySubtitle!,
-                              style: GoogleFonts.inter(
-                                color: Colors.white70,
-                                fontSize: 12,
+                top: 0,
+                left: 0,
+                right: 0,
+                child: SafeArea(
+                  bottom: false,
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                    child: Row(
+                      children: [
+                        IconButton(
+                          icon: const Icon(Icons.arrow_back_ios_new_rounded, color: Colors.white),
+                          onPressed: () {
+                            HapticFeedback.lightImpact();
+                            Navigator.of(context).pop();
+                          },
+                        ),
+                        const SizedBox(width: 4),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Text(
+                                _displayTitle,
+                                style: GoogleFonts.inter(
+                                  color: Colors.white,
+                                  fontWeight: FontWeight.w700,
+                                  fontSize: 16,
+                                ),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
                               ),
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
+                              if (_displaySubtitle != null)
+                                Text(
+                                  _displaySubtitle!,
+                                  style: GoogleFonts.inter(
+                                    color: Colors.white70,
+                                    fontSize: 12,
+                                  ),
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                            ],
+                          ),
+                        ),
+                        // Screen Fit / Aspect Ratio Toggle (Fill / Stretch / Fit)
+                        IconButton(
+                          icon: Icon(
+                            _fitMode == VideoFitMode.fill
+                                ? Icons.zoom_out_map_rounded
+                                : (_fitMode == VideoFitMode.stretch
+                                    ? Icons.fullscreen_rounded
+                                    : Icons.fit_screen_rounded),
+                            color: _fitMode != VideoFitMode.fit ? AppColors.netflixRed : Colors.white70,
+                          ),
+                          tooltip: 'Full Screen / Zoom to Fill',
+                          onPressed: _toggleFitMode,
+                        ),
+                        // PiP Button
+                        IconButton(
+                          icon: const Icon(Icons.picture_in_picture_alt_rounded, color: Colors.white70),
+                          tooltip: 'Picture-in-Picture',
+                          onPressed: _enterPipMode,
+                        ),
+                        // Quality Selector
+                        TextButton(
+                          onPressed: _showQualityDialog,
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
+                            decoration: BoxDecoration(
+                              border: Border.all(color: AppColors.netflixRed.withOpacity(0.7)),
+                              borderRadius: BorderRadius.circular(4),
+                              color: Colors.black38,
                             ),
-                        ],
-                      ),
-                    ),
-                    // PiP Button
-                    IconButton(
-                      icon: const Icon(Icons.picture_in_picture_alt_rounded, color: Colors.white70),
-                      tooltip: 'Picture-in-Picture',
-                      onPressed: _enterPipMode,
-                    ),
-                    // Quality Selector
-                    TextButton(
-                      onPressed: _showQualityDialog,
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
-                        decoration: BoxDecoration(
-                          border: Border.all(color: AppColors.netflixRed.withOpacity(0.7)),
-                          borderRadius: BorderRadius.circular(4),
-                          color: Colors.black38,
+                            child: Text(
+                              _selectedQuality,
+                              style: const TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.bold),
+                            ),
+                          ),
                         ),
-                        child: Text(
-                          _selectedQuality,
-                          style: const TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.bold),
+                        // Lock Screen Button
+                        IconButton(
+                          icon: const Icon(Icons.lock_outline_rounded, color: Colors.white70),
+                          tooltip: 'Lock Screen',
+                          onPressed: () {
+                            HapticFeedback.selectionClick();
+                            setState(() {
+                              _isLocked = true;
+                              _showControls = true;
+                            });
+                            _scheduleHideControls();
+                          },
                         ),
-                      ),
-                    ),
-                    // Lock Screen Button
-                    IconButton(
-                      icon: const Icon(Icons.lock_outline_rounded, color: Colors.white70),
-                      tooltip: 'Lock Screen',
-                      onPressed: () {
-                        HapticFeedback.selectionClick();
-                        setState(() {
-                          _isLocked = true;
-                          _showControls = true;
-                        });
-                        _scheduleHideControls();
-                      },
-                    ),
-                    // Audio & Subtitles
-                    IconButton(
-                      icon: const Icon(Icons.subtitles_rounded, color: Colors.white70),
-                      tooltip: 'Audio & Subtitles',
-                      onPressed: _showAudioSubtitleDialog,
-                    ),
-                    // Playback Speed
-                    TextButton(
-                      onPressed: _showSpeedDialog,
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
-                        decoration: BoxDecoration(
-                          border: Border.all(color: Colors.white54),
-                          borderRadius: BorderRadius.circular(4),
+                        // Audio & Subtitles
+                        IconButton(
+                          icon: const Icon(Icons.subtitles_rounded, color: Colors.white70),
+                          tooltip: 'Audio & Subtitles',
+                          onPressed: _showAudioSubtitleDialog,
                         ),
-                        child: Text(
-                          '${_playbackSpeed}x',
-                          style: const TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.bold),
+                        // Playback Speed
+                        TextButton(
+                          onPressed: _showSpeedDialog,
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
+                            decoration: BoxDecoration(
+                              border: Border.all(color: Colors.white54),
+                              borderRadius: BorderRadius.circular(4),
+                            ),
+                            child: Text(
+                              '${_playbackSpeed}x',
+                              style: const TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.bold),
+                            ),
+                          ),
                         ),
-                      ),
+                      ],
                     ),
-                  ],
+                  ),
                 ),
               ),
 
@@ -962,61 +1328,83 @@ class _FullVideoPlayerScreenState extends State<FullVideoPlayerScreen>
               // Bottom Control Bar
               if (_isInitialized && controller != null)
                 Positioned(
-                  left: 16,
-                  right: 16,
-                  bottom: 12,
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      // Video Progress Slider
-                      VideoProgressIndicator(
-                        controller,
-                        allowScrubbing: true,
-                        padding: const EdgeInsets.symmetric(vertical: 8),
-                        colors: const VideoProgressColors(
-                          playedColor: AppColors.netflixRed,
-                          bufferedColor: Colors.white38,
-                          backgroundColor: Colors.white24,
-                        ),
-                      ),
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  left: 0,
+                  right: 0,
+                  bottom: 0,
+                  child: SafeArea(
+                    top: false,
+                    child: Padding(
+                      padding: const EdgeInsets.fromLTRB(20, 0, 20, 12),
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
                         children: [
-                          Text(
-                            _formatDuration(controller.value.position),
-                            style: GoogleFonts.inter(color: Colors.white70, fontSize: 12),
+                          // Video Progress Slider
+                          VideoProgressIndicator(
+                            controller,
+                            allowScrubbing: true,
+                            padding: const EdgeInsets.symmetric(vertical: 8),
+                            colors: const VideoProgressColors(
+                              playedColor: AppColors.netflixRed,
+                              bufferedColor: Colors.white38,
+                              backgroundColor: Colors.white24,
+                            ),
                           ),
                           Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
                             children: [
-                              // Episodes selector if series
-                              if (_episodeList.isNotEmpty)
-                                TextButton.icon(
-                                  onPressed: _showEpisodesListDialog,
-                                  icon: const Icon(Icons.video_library_rounded, color: Colors.white, size: 16),
-                                  label: const Text('Episodes', style: TextStyle(color: Colors.white, fontSize: 12)),
-                                ),
-                              // Next Episode Button
-                              if (_hasNextEpisode)
-                                TextButton.icon(
-                                  onPressed: _playNextEpisode,
-                                  icon: const Icon(Icons.skip_next_rounded, color: Colors.white, size: 18),
-                                  label: const Text('Next Ep', style: TextStyle(color: Colors.white, fontSize: 12)),
-                                ),
+                              Text(
+                                _formatDuration(controller.value.position),
+                                style: GoogleFonts.inter(color: Colors.white70, fontSize: 12),
+                              ),
+                              Row(
+                                children: [
+                                  // Quick Fit Toggle Shortcut near seek bar
+                                  IconButton(
+                                    iconSize: 20,
+                                    padding: EdgeInsets.zero,
+                                    constraints: const BoxConstraints(),
+                                    icon: Icon(
+                                      _fitMode == VideoFitMode.fill
+                                          ? Icons.zoom_out_map_rounded
+                                          : (_fitMode == VideoFitMode.stretch
+                                              ? Icons.fullscreen_rounded
+                                              : Icons.fit_screen_rounded),
+                                      color: Colors.white,
+                                    ),
+                                    tooltip: 'Toggle Full Screen Aspect Ratio',
+                                    onPressed: _toggleFitMode,
+                                  ),
+                                  const SizedBox(width: 14),
+                                  // Episodes selector if series
+                                  if (_episodeList.isNotEmpty)
+                                    TextButton.icon(
+                                      onPressed: _showEpisodesListDialog,
+                                      icon: const Icon(Icons.video_library_rounded, color: Colors.white, size: 16),
+                                      label: const Text('Episodes', style: TextStyle(color: Colors.white, fontSize: 12)),
+                                    ),
+                                  // Next Episode Button
+                                  if (_hasNextEpisode)
+                                    TextButton.icon(
+                                      onPressed: _playNextEpisode,
+                                      icon: const Icon(Icons.skip_next_rounded, color: Colors.white, size: 18),
+                                      label: const Text('Next Ep', style: TextStyle(color: Colors.white, fontSize: 12)),
+                                    ),
+                                ],
+                              ),
+                              Text(
+                                _formatDuration(controller.value.duration),
+                                style: GoogleFonts.inter(color: Colors.white70, fontSize: 12),
+                              ),
                             ],
-                          ),
-                          Text(
-                            _formatDuration(controller.value.duration),
-                            style: GoogleFonts.inter(color: Colors.white70, fontSize: 12),
                           ),
                         ],
                       ),
-                    ],
+                    ),
                   ),
                 ),
             ],
           ],
         ),
-      ),
     );
   }
 }

@@ -68,9 +68,7 @@ class _AuditionHubScreenState extends State<AuditionHubScreen> with SingleTicker
   void _onApplyPressed(AuditionCall? audition) {
     final appState = Provider.of<AppState>(context, listen: false);
     if (!appState.isLoggedIn) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please log in to apply for auditions.')),
-      );
+      _showAuditionQuickLoginModal(audition);
       return;
     }
 
@@ -95,6 +93,280 @@ class _AuditionHubScreenState extends State<AuditionHubScreen> with SingleTicker
         ),
       );
     }
+  }
+
+  void _showAuditionQuickLoginModal(AuditionCall? audition) {
+    final phoneController = TextEditingController();
+    final otpController = TextEditingController();
+    bool otpSent = false;
+    bool isSubmitting = false;
+    String? debugOtp;
+    String? errorText;
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: const Color(0xFF141414),
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      builder: (sheetContext) {
+        return StatefulBuilder(
+          builder: (context, setModalState) {
+            return Padding(
+              padding: EdgeInsets.only(
+                bottom: MediaQuery.of(context).viewInsets.bottom + 24,
+                left: 24,
+                right: 24,
+                top: 20,
+              ),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Center(
+                    child: Container(
+                      width: 40,
+                      height: 4,
+                      decoration: BoxDecoration(
+                        color: Colors.white24,
+                        borderRadius: BorderRadius.circular(2),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 18),
+                  Row(
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(8),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFE50914).withValues(alpha: 0.15),
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                        child: const Icon(Icons.stars_rounded, color: Color(0xFFE50914), size: 24),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              'Audition Registration',
+                              style: GoogleFonts.outfit(
+                                fontSize: 19,
+                                fontWeight: FontWeight.bold,
+                                color: Colors.white,
+                              ),
+                            ),
+                            Text(
+                              'Quick mobile verification to unlock audition pass (₹199)',
+                              style: GoogleFonts.inter(
+                                fontSize: 12,
+                                color: Colors.white60,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 20),
+                  if (errorText != null) ...[
+                    Container(
+                      padding: const EdgeInsets.all(10),
+                      decoration: BoxDecoration(
+                        color: Colors.red.withValues(alpha: 0.15),
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: Row(
+                        children: [
+                          const Icon(Icons.error_outline, color: Colors.redAccent, size: 18),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: Text(
+                              errorText!,
+                              style: const TextStyle(color: Colors.redAccent, fontSize: 13),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                  ],
+                  if (!otpSent) ...[
+                    Text(
+                      'Enter Mobile Number',
+                      style: GoogleFonts.inter(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w600,
+                        color: Colors.white70,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    TextField(
+                      controller: phoneController,
+                      keyboardType: TextInputType.phone,
+                      style: const TextStyle(color: Colors.white),
+                      decoration: InputDecoration(
+                        filled: true,
+                        fillColor: const Color(0xFF222222),
+                        hintText: '9876543210',
+                        hintStyle: const TextStyle(color: Colors.white38),
+                        prefixIcon: const Icon(Icons.phone_iphone_rounded, color: Colors.white54),
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12),
+                          borderSide: BorderSide.none,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 20),
+                    SizedBox(
+                      width: double.infinity,
+                      height: 48,
+                      child: ElevatedButton(
+                        onPressed: isSubmitting
+                            ? null
+                            : () async {
+                                final phone = phoneController.text.trim();
+                                if (phone.length < 10) {
+                                  setModalState(() => errorText = 'Please enter a valid 10-digit mobile number');
+                                  return;
+                                }
+                                setModalState(() {
+                                  isSubmitting = true;
+                                  errorText = null;
+                                });
+                                try {
+                                  final appState = Provider.of<AppState>(context, listen: false);
+                                  final code = await appState.requestOtp(phone);
+                                  setModalState(() {
+                                    otpSent = true;
+                                    debugOtp = code;
+                                    isSubmitting = false;
+                                  });
+                                } catch (e) {
+                                  setModalState(() {
+                                    errorText = e.toString();
+                                    isSubmitting = false;
+                                  });
+                                }
+                              },
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: const Color(0xFFE50914),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                        ),
+                        child: isSubmitting
+                            ? const SizedBox(
+                                width: 20,
+                                height: 20,
+                                child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                              )
+                            : const Text('Send OTP & Proceed', style: TextStyle(fontWeight: FontWeight.bold)),
+                      ),
+                    ),
+                  ] else ...[
+                    Text(
+                      'Enter 6-Digit OTP sent to ${phoneController.text}',
+                      style: GoogleFonts.inter(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w600,
+                        color: Colors.white70,
+                      ),
+                    ),
+                    if (debugOtp != null) ...[
+                      const SizedBox(height: 8),
+                      GestureDetector(
+                        onTap: () {
+                          otpController.text = debugOtp!;
+                          setModalState(() {});
+                        },
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFFE50914).withValues(alpha: 0.15),
+                            borderRadius: BorderRadius.circular(6),
+                          ),
+                          child: Text(
+                            '👉 Tap to auto-fill Test OTP: $debugOtp',
+                            style: const TextStyle(color: Color(0xFFE50914), fontSize: 12, fontWeight: FontWeight.bold),
+                          ),
+                        ),
+                      ),
+                    ],
+                    const SizedBox(height: 12),
+                    TextField(
+                      controller: otpController,
+                      keyboardType: TextInputType.number,
+                      maxLength: 6,
+                      style: const TextStyle(color: Colors.white, fontSize: 22, letterSpacing: 8, fontWeight: FontWeight.bold),
+                      textAlign: TextAlign.center,
+                      decoration: InputDecoration(
+                        counterText: '',
+                        filled: true,
+                        fillColor: const Color(0xFF222222),
+                        hintText: '------',
+                        hintStyle: const TextStyle(color: Colors.white38),
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12),
+                          borderSide: BorderSide.none,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 20),
+                    SizedBox(
+                      width: double.infinity,
+                      height: 48,
+                      child: ElevatedButton(
+                        onPressed: isSubmitting
+                            ? null
+                            : () async {
+                                final otp = otpController.text.trim();
+                                if (otp.length != 6) {
+                                  setModalState(() => errorText = 'Please enter complete 6-digit OTP');
+                                  return;
+                                }
+                                setModalState(() {
+                                  isSubmitting = true;
+                                  errorText = null;
+                                });
+                                try {
+                                  final appState = Provider.of<AppState>(context, listen: false);
+                                  await appState.verifyOtp(otp);
+                                  if (!sheetContext.mounted) return;
+                                  Navigator.of(sheetContext).pop();
+                                  if (mounted) {
+                                    await _loadData();
+                                    _onApplyPressed(audition);
+                                  }
+                                } catch (e) {
+                                  setModalState(() {
+                                    errorText = e.toString();
+                                    isSubmitting = false;
+                                  });
+                                }
+                              },
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: const Color(0xFFE50914),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                        ),
+                        child: isSubmitting
+                            ? const SizedBox(
+                                width: 20,
+                                height: 20,
+                                child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                              )
+                            : const Text('Verify & Unlock Audition Pass', style: TextStyle(fontWeight: FontWeight.bold)),
+                      ),
+                    ),
+                  ],
+                  const SizedBox(height: 10),
+                ],
+              ),
+            );
+          },
+        );
+      },
+    );
   }
 
   void _openApplicationForm(AuditionCall? audition) {

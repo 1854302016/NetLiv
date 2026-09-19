@@ -386,6 +386,35 @@ class _SubscriptionPlanScreenState extends State<SubscriptionPlanScreen> {
                           ),
                         ),
                       ),
+                      if (widget.isOnboarding) ...[
+                        const SizedBox(height: 8),
+                        TextButton(
+                          onPressed: () {
+                            unawaited(context.read<AppState>().completeOnboarding());
+                            Navigator.of(context).pushReplacement(
+                              PageRouteBuilder(
+                                transitionDuration: const Duration(milliseconds: 400),
+                                pageBuilder: (context, animation, secondaryAnimation) =>
+                                    const MainNavigationScreen(),
+                                transitionsBuilder: (context, animation, secondaryAnimation, child) {
+                                  return FadeTransition(
+                                    opacity: CurvedAnimation(parent: animation, curve: Curves.easeOut),
+                                    child: child,
+                                  );
+                                },
+                              ),
+                            );
+                          },
+                          child: Text(
+                            'Skip for now & explore content',
+                            style: GoogleFonts.inter(
+                              fontSize: 13,
+                              fontWeight: FontWeight.w600,
+                              color: const Color(0xFF9E9E9E),
+                            ),
+                          ),
+                        ),
+                      ],
                     ],
                   ),
                 ),

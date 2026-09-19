@@ -234,18 +234,6 @@ class ProfileScreen extends StatelessWidget {
                     title: 'Privacy & Terms',
                     onTap: () {},
                   ),
-                  _buildSettingTile(
-                    icon: Icons.web_rounded,
-                    title: 'View Netflix Landing Page',
-                    trailingText: 'Showcase',
-                    onTap: () {
-                      Navigator.of(context).push(
-                        MaterialPageRoute(
-                          builder: (_) => const NetflixLandingScreen(),
-                        ),
-                      );
-                    },
-                  ),
                   const SizedBox(height: 16),
 
                   // Sign Out Button

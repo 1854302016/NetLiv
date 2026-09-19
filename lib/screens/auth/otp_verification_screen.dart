@@ -212,13 +212,43 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen> {
                       ),
                     ),
                     if (_debugOtp != null) ...[
-                      const SizedBox(height: 10),
-                      Text(
-                        'Test mode — OTP is $_debugOtp (no SMS gateway configured yet)',
-                        style: GoogleFonts.inter(
-                          fontSize: 12,
-                          color: AppColors.netflixRed,
-                          fontStyle: FontStyle.italic,
+                      const SizedBox(height: 12),
+                      InkWell(
+                        onTap: () {
+                          HapticFeedback.selectionClick();
+                          for (int i = 0; i < _debugOtp!.length && i < _otpLength; i++) {
+                            _controllers[i].text = _debugOtp![i];
+                          }
+                          if (_focusNodes.isNotEmpty) {
+                            _focusNodes.last.requestFocus();
+                          }
+                          setState(() {});
+                        },
+                        borderRadius: BorderRadius.circular(8),
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                          decoration: BoxDecoration(
+                            color: AppColors.netflixRed.withValues(alpha: 0.15),
+                            borderRadius: BorderRadius.circular(8),
+                            border: Border.all(color: AppColors.netflixRed.withValues(alpha: 0.5)),
+                          ),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              const Icon(Icons.touch_app_rounded, color: AppColors.netflixRed, size: 16),
+                              const SizedBox(width: 6),
+                              Flexible(
+                                child: Text(
+                                  'Tap to Auto-fill Test OTP: $_debugOtp',
+                                  style: GoogleFonts.inter(
+                                    fontSize: 12,
+                                    color: Colors.white,
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
                         ),
                       ),
                     ],

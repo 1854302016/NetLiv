@@ -13,7 +13,7 @@ class MainActivity : FlutterActivity() {
 
     override fun configureFlutterEngine(flutterEngine: FlutterEngine) {
         super.configureFlutterEngine(flutterEngine)
-        window.addFlags(LayoutParams.FLAG_SECURE)
+        // window.addFlags(LayoutParams.FLAG_SECURE) // Temporarily disabled to allow screenshots during testing
 
         MethodChannel(flutterEngine.dartExecutor.binaryMessenger, PIP_CHANNEL).setMethodCallHandler { call, result ->
             if (call.method == "enterPipMode") {
