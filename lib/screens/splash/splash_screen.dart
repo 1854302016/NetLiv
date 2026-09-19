@@ -3,7 +3,11 @@ import 'dart:math' as math;
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:provider/provider.dart';
+import '../../state/app_state.dart';
+import '../auth/profile_setup_screen.dart';
 import '../landing/netflix_landing_screen.dart';
+import '../main_navigation_screen.dart';
 
 /// Cinematic 3D curved movie poster wall preview screen shown for ~4s on app launch.
 /// Faithfully reproduces the user's reference design with 4 curved perspective columns,
@@ -31,8 +35,8 @@ class _SplashScreenState extends State<SplashScreen>
       duration: const Duration(seconds: 24),
     )..repeat();
 
-    // Auto-navigate to NetflixLandingScreen after ~4.2 seconds
-    _navTimer = Timer(const Duration(milliseconds: 4200), _navigateToApp);
+    // Auto-navigate after ~3.5 seconds based on authentication state
+    _navTimer = Timer(const Duration(milliseconds: 3500), _navigateToApp);
   }
 
   void _navigateToApp() {
@@ -40,11 +44,23 @@ class _SplashScreenState extends State<SplashScreen>
     _hasNavigated = true;
     _navTimer?.cancel();
 
+    final appState = context.read<AppState>();
+    Widget targetScreen;
+
+    if (appState.isLoggedIn) {
+      if (!appState.isProfileComplete) {
+        targetScreen = const ProfileSetupScreen();
+      } else {
+        targetScreen = const MainNavigationScreen();
+      }
+    } else {
+      targetScreen = const NetflixLandingScreen();
+    }
+
     Navigator.of(context).pushReplacement(
       PageRouteBuilder(
         transitionDuration: const Duration(milliseconds: 600),
-        pageBuilder: (context, animation, secondaryAnimation) =>
-            const NetflixLandingScreen(),
+        pageBuilder: (context, animation, secondaryAnimation) => targetScreen,
         transitionsBuilder: (context, animation, secondaryAnimation, child) {
           return FadeTransition(
             opacity: CurvedAnimation(

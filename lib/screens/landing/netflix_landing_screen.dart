@@ -10,7 +10,10 @@ import '../../state/app_state.dart';
 import '../../widgets/curved_arc_divider.dart';
 import '../../widgets/netflix_top_ten_card.dart';
 import '../../widgets/reason_to_join_card.dart';
+import '../auditions/audition_hub_screen.dart';
 import '../auth/login_screen.dart';
+import '../auth/profile_setup_screen.dart';
+import '../main_navigation_screen.dart';
 
 /// Full, authentic replica of the official Netflix Landing Homepage based on user reference images.
 /// Includes Hero with mosaic posters & pricing, curved arc divider, outlined Top 10 carousel,
@@ -35,7 +38,17 @@ class _NetflixLandingScreenState extends State<NetflixLandingScreen> {
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      context.read<AppState>().loadContent();
+      final appState = context.read<AppState>();
+      appState.loadContent();
+      if (appState.isLoggedIn && mounted) {
+        Navigator.of(context).pushReplacement(
+          MaterialPageRoute(
+            builder: (_) => appState.isProfileComplete
+                ? const MainNavigationScreen()
+                : const ProfileSetupScreen(),
+          ),
+        );
+      }
     });
   }
 
@@ -117,7 +130,14 @@ class _NetflixLandingScreenState extends State<NetflixLandingScreen> {
             // ==========================================
             _buildTrendingNowSection(),
 
-            const SizedBox(height: 42),
+            const SizedBox(height: 32),
+
+            // ==========================================
+            // 3.5 AUDITION & CASTING CALLS BANNER
+            // ==========================================
+            _buildAuditionSpotlightSection(),
+
+            const SizedBox(height: 36),
 
             // ==========================================
             // 4. MORE REASONS TO JOIN
@@ -155,21 +175,22 @@ class _NetflixLandingScreenState extends State<NetflixLandingScreen> {
       children: [
         // Background Infinite Auto-Scrolling Tilted Poster Wall
         Positioned.fill(
-          child: Stack(
-            fit: StackFit.expand,
-            children: [
-              // Moving Poster Marquee Wall (opposite scrolling columns)
-              Opacity(
-                opacity: 0.45,
-                child: _AutoScrollingPosterWall(
-                  posterUrls: context
-                      .watch<AppState>()
-                      .catalog
-                      .map((m) => m.posterUrl)
-                      .where((url) => url.isNotEmpty)
-                      .toList(),
+          child: ClipRect(
+            child: Stack(
+              fit: StackFit.expand,
+              children: [
+                // Moving Poster Marquee Wall (opposite scrolling columns)
+                Opacity(
+                  opacity: 0.45,
+                  child: _AutoScrollingPosterWall(
+                    posterUrls: context
+                        .watch<AppState>()
+                        .catalog
+                        .map((m) => m.posterUrl)
+                        .where((url) => url.isNotEmpty)
+                        .toList(),
+                  ),
                 ),
-              ),
 
               // Multi-stop Netflix dark gradient overlay
               Container(
@@ -205,6 +226,7 @@ class _NetflixLandingScreenState extends State<NetflixLandingScreen> {
             ],
           ),
         ),
+      ),
 
         // Hero Content
         Padding(
@@ -212,14 +234,14 @@ class _NetflixLandingScreenState extends State<NetflixLandingScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.center,
             children: [
-              // Top Bar: NetLiv Wordmark, Language dropdown, Sign In button
+              // Top Bar: NetLiv Wordmark, Auditions button, Language dropdown, Sign In button
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   // NetLiv official brand logo with breathing glow
                   Image.asset(
                     'assets/images/logo.png',
-                    height: 38,
+                    height: 34,
                     fit: BoxFit.contain,
                   )
                       .animate(onPlay: (c) => c.repeat(reverse: true))
@@ -227,10 +249,67 @@ class _NetflixLandingScreenState extends State<NetflixLandingScreen> {
 
                   Row(
                     children: [
+                      // Auditions Button
+                      Material(
+                        color: Colors.transparent,
+                        borderRadius: BorderRadius.circular(4),
+                        child: InkWell(
+                          onTap: () {
+                            HapticFeedback.lightImpact();
+                            Navigator.of(context).push(
+                              MaterialPageRoute(
+                                builder: (_) => const AuditionHubScreen(),
+                              ),
+                            );
+                          },
+                          borderRadius: BorderRadius.circular(4),
+                          child: Container(
+                            height: 32,
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 9, vertical: 0),
+                            decoration: BoxDecoration(
+                              gradient: const LinearGradient(
+                                colors: [Color(0xFFE50914), Color(0xFFFF5252)],
+                                begin: Alignment.topLeft,
+                                end: Alignment.bottomRight,
+                              ),
+                              borderRadius: BorderRadius.circular(4),
+                              boxShadow: [
+                                BoxShadow(
+                                  color: const Color(0xFFE50914).withOpacity(0.4),
+                                  blurRadius: 6,
+                                  offset: const Offset(0, 2),
+                                ),
+                              ],
+                            ),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                const Icon(
+                                  Icons.stars_rounded,
+                                  color: Colors.white,
+                                  size: 14,
+                                ),
+                                const SizedBox(width: 4),
+                                Text(
+                                  'Audition',
+                                  style: GoogleFonts.inter(
+                                    color: Colors.white,
+                                    fontSize: 12,
+                                    fontWeight: FontWeight.w800,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 6),
+
                       // Language Selector Dropdown
                       Container(
                         height: 32,
-                        padding: const EdgeInsets.symmetric(horizontal: 8),
+                        padding: const EdgeInsets.symmetric(horizontal: 6),
                         decoration: BoxDecoration(
                           color: Colors.black.withOpacity(0.65),
                           borderRadius: BorderRadius.circular(4),
@@ -246,7 +325,7 @@ class _NetflixLandingScreenState extends State<NetflixLandingScreen> {
                             icon: const Icon(
                               Icons.arrow_drop_down,
                               color: Colors.white,
-                              size: 18,
+                              size: 16,
                             ),
                             items: _languages.map((lang) {
                               return DropdownMenuItem<String>(
@@ -256,14 +335,14 @@ class _NetflixLandingScreenState extends State<NetflixLandingScreen> {
                                     const Icon(
                                       Icons.translate_rounded,
                                       color: Colors.white,
-                                      size: 13,
+                                      size: 12,
                                     ),
-                                    const SizedBox(width: 5),
+                                    const SizedBox(width: 4),
                                     Text(
                                       lang,
                                       style: GoogleFonts.inter(
                                         color: Colors.white,
-                                        fontSize: 12,
+                                        fontSize: 11.5,
                                         fontWeight: FontWeight.w500,
                                       ),
                                     ),
@@ -279,23 +358,32 @@ class _NetflixLandingScreenState extends State<NetflixLandingScreen> {
                           ),
                         ),
                       ),
-                      const SizedBox(width: 10),
+                      const SizedBox(width: 6),
 
                       // Red "Sign In" Button (Image 1)
                       Material(
-                        color: AppColors.netflixRed,
+                        color: const Color(0xFF262626),
                         borderRadius: BorderRadius.circular(4),
                         child: InkWell(
                           onTap: _navigateToLogin,
                           borderRadius: BorderRadius.circular(4),
                           child: Container(
+                            height: 32,
                             padding: const EdgeInsets.symmetric(
-                                horizontal: 14, vertical: 6),
+                                horizontal: 10, vertical: 0),
+                            alignment: Alignment.center,
+                            decoration: BoxDecoration(
+                              borderRadius: BorderRadius.circular(4),
+                              border: Border.all(
+                                color: Colors.white.withOpacity(0.2),
+                                width: 0.8,
+                              ),
+                            ),
                             child: Text(
                               'Sign In',
                               style: GoogleFonts.inter(
                                 color: Colors.white,
-                                fontSize: 13,
+                                fontSize: 12,
                                 fontWeight: FontWeight.w700,
                               ),
                             ),
@@ -490,6 +578,144 @@ class _NetflixLandingScreenState extends State<NetflixLandingScreen> {
                 ),
         ),
       ],
+    );
+  }
+
+  // ---------------------------------------------------------------------------
+  // 3.5 AUDITION SPOTLIGHT SECTION
+  // ---------------------------------------------------------------------------
+  Widget _buildAuditionSpotlightSection() {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 20),
+      child: Container(
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(16),
+          gradient: const LinearGradient(
+            colors: [Color(0xFF220A0C), Color(0xFF130909), Color(0xFF171717)],
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+          ),
+          border: Border.all(
+            color: const Color(0xFFE50914).withOpacity(0.4),
+            width: 1.2,
+          ),
+          boxShadow: [
+            BoxShadow(
+              color: const Color(0xFFE50914).withOpacity(0.18),
+              blurRadius: 18,
+              offset: const Offset(0, 6),
+            ),
+          ],
+        ),
+        padding: const EdgeInsets.all(20),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFE50914),
+                    borderRadius: BorderRadius.circular(20),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      const Icon(Icons.stars_rounded, color: Colors.white, size: 14),
+                      const SizedBox(width: 4),
+                      Text(
+                        'CASTING CALLS LIVE',
+                        style: GoogleFonts.inter(
+                          color: Colors.white,
+                          fontSize: 10.5,
+                          fontWeight: FontWeight.w900,
+                          letterSpacing: 0.8,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const Spacer(),
+                const Text(
+                  '🎭 ✍️ 🎬',
+                  style: TextStyle(fontSize: 16),
+                ),
+              ],
+            ),
+            const SizedBox(height: 12),
+            Text(
+              'Showcase Your Talent on NetLiv',
+              style: GoogleFonts.inter(
+                color: Colors.white,
+                fontSize: 18,
+                fontWeight: FontWeight.w800,
+                letterSpacing: -0.3,
+              ),
+            ),
+            const SizedBox(height: 6),
+            Text(
+              'Are you an Actor, Writer, Director, Singer or Filmmaker? Audition for upcoming NetLiv Originals and get discovered directly by industry directors.',
+              style: GoogleFonts.inter(
+                color: const Color(0xFFCCCCCC),
+                fontSize: 12.5,
+                height: 1.45,
+              ),
+            ),
+            const SizedBox(height: 16),
+            Material(
+              color: Colors.transparent,
+              child: InkWell(
+                onTap: () {
+                  HapticFeedback.lightImpact();
+                  Navigator.of(context).push(
+                    MaterialPageRoute(
+                      builder: (_) => const AuditionHubScreen(),
+                    ),
+                  );
+                },
+                borderRadius: BorderRadius.circular(8),
+                child: Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.symmetric(vertical: 12),
+                  decoration: BoxDecoration(
+                    gradient: const LinearGradient(
+                      colors: [Color(0xFFE50914), Color(0xFFFF3333)],
+                    ),
+                    borderRadius: BorderRadius.circular(8),
+                    boxShadow: [
+                      BoxShadow(
+                        color: const Color(0xFFE50914).withOpacity(0.35),
+                        blurRadius: 8,
+                        offset: const Offset(0, 3),
+                      ),
+                    ],
+                  ),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Text(
+                        'Explore Auditions & Apply Now',
+                        style: GoogleFonts.inter(
+                          color: Colors.white,
+                          fontSize: 14,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                      const SizedBox(width: 6),
+                      const Icon(
+                        Icons.arrow_forward_rounded,
+                        color: Colors.white,
+                        size: 18,
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
     );
   }
 

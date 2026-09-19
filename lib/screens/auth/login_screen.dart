@@ -10,6 +10,7 @@ import '../../services/api_service.dart';
 import '../../state/app_state.dart';
 import '../main_navigation_screen.dart';
 import 'otp_verification_screen.dart';
+import 'profile_setup_screen.dart';
 
 /// Ultra-Modern, Signature NetLiv Login Screen matching netlivtv.com/login.
 /// Features infinite 4-column animated moving poster collage in background,
@@ -39,6 +40,19 @@ class _LoginScreenState extends State<LoginScreen> {
     }
     _inputController.addListener(() => setState(() {}));
     _inputFocusNode.addListener(() => setState(() {}));
+
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final appState = context.read<AppState>();
+      if (appState.isLoggedIn && mounted) {
+        Navigator.of(context).pushReplacement(
+          MaterialPageRoute(
+            builder: (_) => appState.isProfileComplete
+                ? const MainNavigationScreen()
+                : const ProfileSetupScreen(),
+          ),
+        );
+      }
+    });
   }
 
   @override

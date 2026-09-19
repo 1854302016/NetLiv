@@ -17,9 +17,19 @@ class PreferencesService {
     return _prefs!;
   }
 
-  // Auth
+  // Auth & User Profile Session
   static const String _keyAuthToken = 'auth_token';
   static const String _keyPhoneNumber = 'phone_number';
+  static const String _keyUserName = 'user_name';
+  static const String _keyUserGender = 'user_gender';
+  static const String _keyUserAge = 'user_age';
+  static const String _keyIsProfileComplete = 'is_profile_complete';
+
+  // Subscription Cache
+  static const String _keyHasActiveSubscription = 'has_active_subscription';
+  static const String _keyActivePlanName = 'active_plan_name';
+  static const String _keySubscriptionDaysLeft = 'subscription_days_left';
+  static const String _keySubscriptionExpiresAt = 'subscription_expires_at';
 
   static String? getAuthToken() => _instance.getString(_keyAuthToken);
   static Future<void> setAuthToken(String? token) async {
@@ -36,6 +46,63 @@ class PreferencesService {
       await _instance.remove(_keyPhoneNumber);
     } else {
       await _instance.setString(_keyPhoneNumber, phone);
+    }
+  }
+
+  static String? getUserName() => _instance.getString(_keyUserName);
+  static Future<void> setUserName(String? name) async {
+    if (name == null) {
+      await _instance.remove(_keyUserName);
+    } else {
+      await _instance.setString(_keyUserName, name);
+    }
+  }
+
+  static String? getUserGender() => _instance.getString(_keyUserGender);
+  static Future<void> setUserGender(String? gender) async {
+    if (gender == null) {
+      await _instance.remove(_keyUserGender);
+    } else {
+      await _instance.setString(_keyUserGender, gender);
+    }
+  }
+
+  static int? getUserAge() => _instance.getInt(_keyUserAge);
+  static Future<void> setUserAge(int? age) async {
+    if (age == null) {
+      await _instance.remove(_keyUserAge);
+    } else {
+      await _instance.setInt(_keyUserAge, age);
+    }
+  }
+
+  static bool getIsProfileComplete() => _instance.getBool(_keyIsProfileComplete) ?? false;
+  static Future<void> setIsProfileComplete(bool isComplete) =>
+      _instance.setBool(_keyIsProfileComplete, isComplete);
+
+  static bool getHasActiveSubscription() => _instance.getBool(_keyHasActiveSubscription) ?? false;
+  static Future<void> setHasActiveSubscription(bool hasSub) =>
+      _instance.setBool(_keyHasActiveSubscription, hasSub);
+
+  static String? getActivePlanName() => _instance.getString(_keyActivePlanName);
+  static Future<void> setActivePlanName(String? planName) async {
+    if (planName == null) {
+      await _instance.remove(_keyActivePlanName);
+    } else {
+      await _instance.setString(_keyActivePlanName, planName);
+    }
+  }
+
+  static int getSubscriptionDaysLeft() => _instance.getInt(_keySubscriptionDaysLeft) ?? 0;
+  static Future<void> setSubscriptionDaysLeft(int days) =>
+      _instance.setInt(_keySubscriptionDaysLeft, days);
+
+  static String? getSubscriptionExpiresAt() => _instance.getString(_keySubscriptionExpiresAt);
+  static Future<void> setSubscriptionExpiresAt(String? expiresAt) async {
+    if (expiresAt == null) {
+      await _instance.remove(_keySubscriptionExpiresAt);
+    } else {
+      await _instance.setString(_keySubscriptionExpiresAt, expiresAt);
     }
   }
 
@@ -177,5 +244,13 @@ class PreferencesService {
   static Future<void> clearAuthSession() async {
     await _instance.remove(_keyAuthToken);
     await _instance.remove(_keyPhoneNumber);
+    await _instance.remove(_keyUserName);
+    await _instance.remove(_keyUserGender);
+    await _instance.remove(_keyUserAge);
+    await _instance.remove(_keyIsProfileComplete);
+    await _instance.remove(_keyHasActiveSubscription);
+    await _instance.remove(_keyActivePlanName);
+    await _instance.remove(_keySubscriptionDaysLeft);
+    await _instance.remove(_keySubscriptionExpiresAt);
   }
 }

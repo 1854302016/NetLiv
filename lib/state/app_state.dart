@@ -22,6 +22,16 @@ class AppState extends ChangeNotifier {
     // Auth restore
     _authToken = PreferencesService.getAuthToken();
     _phoneNumber = PreferencesService.getPhoneNumber();
+    _userName = PreferencesService.getUserName();
+    _userGender = PreferencesService.getUserGender();
+    _userAge = PreferencesService.getUserAge();
+    _isProfileComplete = PreferencesService.getIsProfileComplete();
+
+    // Subscription restore
+    _hasActiveSubscription = PreferencesService.getHasActiveSubscription();
+    _activePlanName = PreferencesService.getActivePlanName();
+    _subscriptionDaysLeft = PreferencesService.getSubscriptionDaysLeft();
+    _subscriptionExpiresAt = PreferencesService.getSubscriptionExpiresAt();
 
     // Preferences restore
     _autoplayPreviews = PreferencesService.getAutoplayPreviews();
@@ -82,12 +92,15 @@ class AppState extends ChangeNotifier {
   String? _userName;
   String? _userGender;
   int? _userAge;
-  bool get isLoggedIn => _authToken != null;
+  bool _isProfileComplete = false;
+
+  bool get isLoggedIn => _authToken != null && _authToken!.isNotEmpty;
   String? get authToken => _authToken;
   String? get phoneNumber => _phoneNumber;
   String? get userName => _userName;
   String? get userGender => _userGender;
   int? get userAge => _userAge;
+  bool get isProfileComplete => _isProfileComplete;
 
   // Subscription & Expiry state
   bool _hasActiveSubscription = false;
@@ -121,6 +134,31 @@ class AppState extends ChangeNotifier {
         _subscriptionDaysLeft = sub['daysLeft'] as int? ?? 0;
         _activePlanName = sub['planName'] as String?;
         _subscriptionExpiresAt = sub['expiresAt'] as String?;
+
+        await PreferencesService.setHasActiveSubscription(_hasActiveSubscription);
+        await PreferencesService.setActivePlanName(_activePlanName);
+        await PreferencesService.setSubscriptionDaysLeft(_subscriptionDaysLeft);
+        await PreferencesService.setSubscriptionExpiresAt(_subscriptionExpiresAt);
+      }
+      final isComplete = me['isProfileComplete'] as bool?;
+      if (isComplete != null) {
+        _isProfileComplete = isComplete;
+        await PreferencesService.setIsProfileComplete(isComplete);
+      }
+      final name = me['name'] as String?;
+      if (name != null) {
+        _userName = name;
+        await PreferencesService.setUserName(name);
+      }
+      final gender = me['gender'] as String?;
+      if (gender != null) {
+        _userGender = gender;
+        await PreferencesService.setUserGender(gender);
+      }
+      final age = me['age'] as int?;
+      if (age != null) {
+        _userAge = age;
+        await PreferencesService.setUserAge(age);
       }
       notifyListeners();
     } catch (_) {}
@@ -144,8 +182,9 @@ class AppState extends ChangeNotifier {
     }
     final result = await ApiService.verifyOtp(_phoneNumber!, otp);
     _authToken = result['token'] as String;
-    final isNewUser = result['isNewUser'] as bool;
-    final isProfileComplete = result['isProfileComplete'] as bool;
+    final isNewUser = result['isNewUser'] as bool? ?? false;
+    final isProfileComplete = result['isProfileComplete'] as bool? ?? false;
+    _isProfileComplete = isProfileComplete;
     final userData = result['user'] as Map<String, dynamic>?;
     if (userData != null) {
       _userName = userData['name'] as String?;
@@ -156,6 +195,24 @@ class AppState extends ChangeNotifier {
     // Persist session
     await PreferencesService.setAuthToken(_authToken);
     await PreferencesService.setPhoneNumber(_phoneNumber);
+    await PreferencesService.setUserName(_userName);
+    await PreferencesService.setUserGender(_userGender);
+    await PreferencesService.setUserAge(_userAge);
+    await PreferencesService.setIsProfileComplete(isProfileComplete);
+
+    final sub = result['subscription'] as Map<String, dynamic>?;
+    if (sub != null) {
+      _hasActiveSubscription = sub['hasActiveSubscription'] as bool? ?? false;
+      _isSubscriptionExpiringSoon = sub['isExpiringSoon'] as bool? ?? false;
+      _subscriptionDaysLeft = sub['daysLeft'] as int? ?? 0;
+      _activePlanName = sub['planName'] as String?;
+      _subscriptionExpiresAt = sub['expiresAt'] as String?;
+
+      await PreferencesService.setHasActiveSubscription(_hasActiveSubscription);
+      await PreferencesService.setActivePlanName(_activePlanName);
+      await PreferencesService.setSubscriptionDaysLeft(_subscriptionDaysLeft);
+      await PreferencesService.setSubscriptionExpiresAt(_subscriptionExpiresAt);
+    }
 
     await loadProfiles();
     unawaited(_refreshDeviceCount());
@@ -189,7 +246,17 @@ class AppState extends ChangeNotifier {
       _userName = userData['name'] as String?;
       _userGender = userData['gender'] as String?;
       _userAge = userData['age'] as int?;
+    } else {
+      _userName = name;
+      _userGender = gender;
+      _userAge = age;
     }
+    _isProfileComplete = true;
+    await PreferencesService.setUserName(_userName);
+    await PreferencesService.setUserGender(_userGender);
+    await PreferencesService.setUserAge(_userAge);
+    await PreferencesService.setIsProfileComplete(true);
+
     await loadProfiles();
     notifyListeners();
   }
@@ -225,6 +292,11 @@ class AppState extends ChangeNotifier {
     _userName = null;
     _userGender = null;
     _userAge = null;
+    _isProfileComplete = false;
+    _hasActiveSubscription = false;
+    _activePlanName = null;
+    _subscriptionDaysLeft = 0;
+    _subscriptionExpiresAt = null;
     _deviceCount = 1;
     _billingHistory = [];
     _paymentMethod = null;
