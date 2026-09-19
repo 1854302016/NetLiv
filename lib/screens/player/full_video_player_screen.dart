@@ -374,6 +374,66 @@ class _FullVideoPlayerScreenState extends State<FullVideoPlayerScreen>
     );
   }
 
+  Future<void> _enterPipMode() async {
+    try {
+      await _pipChannel.invokeMethod('enterPipMode');
+    } catch (_) {}
+  }
+
+  void _showQualityDialog() {
+    _hideControlsTimer?.cancel();
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: AppColors.surfaceElevated,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (context) {
+        final qualities = [
+          {'label': 'Auto (Recommended)', 'badge': 'Auto'},
+          {'label': '1080p Full HD (High Quality)', 'badge': '1080p'},
+          {'label': '720p HD (Balanced)', 'badge': '720p'},
+          {'label': '480p SD (Data Saver)', 'badge': '480p'},
+        ];
+        return SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.symmetric(vertical: 16),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text('Video Streaming Quality', style: AppTypography.titleMedium),
+                const SizedBox(height: 12),
+                ...qualities.map((q) {
+                  final badge = q['badge']!;
+                  final isSelected = _selectedQuality == badge;
+                  return ListTile(
+                    title: Text(
+                      q['label']!,
+                      style: TextStyle(
+                        color: isSelected ? AppColors.netflixRed : Colors.white,
+                        fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                      ),
+                    ),
+                    trailing: isSelected
+                        ? const Icon(Icons.check_rounded, color: AppColors.netflixRed)
+                        : null,
+                    onTap: () {
+                      setState(() {
+                        _selectedQuality = badge;
+                      });
+                      Navigator.pop(context);
+                      _scheduleHideControls();
+                    },
+                  );
+                }),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+
   void _showAudioSubtitleDialog() {
     _hideControlsTimer?.cancel();
     showModalBottomSheet(
@@ -690,6 +750,50 @@ class _FullVideoPlayerScreenState extends State<FullVideoPlayerScreen>
                 ),
               ),
 
+            // Skip Intro Button Overlay (shown during opening 4s to 90s)
+            if (_canSkipIntro && !_isLocked)
+              Positioned(
+                right: 20,
+                bottom: 80,
+                child: GestureDetector(
+                  onTap: () {
+                    HapticFeedback.heavyImpact();
+                    _seekRelative(85);
+                  },
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 9),
+                    decoration: BoxDecoration(
+                      color: Colors.black.withOpacity(0.85),
+                      borderRadius: BorderRadius.circular(6),
+                      border: Border.all(color: Colors.white, width: 1.2),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withOpacity(0.6),
+                          blurRadius: 10,
+                          offset: const Offset(0, 3),
+                        ),
+                      ],
+                    ),
+                    child: const Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text(
+                          'Skip Intro',
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontWeight: FontWeight.w700,
+                            fontSize: 13,
+                            letterSpacing: 0.4,
+                          ),
+                        ),
+                        SizedBox(width: 6),
+                        Icon(Icons.fast_forward_rounded, color: Colors.white, size: 18),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+
             // Full Player UI Controls (when not locked)
             if (!_isLocked && (_showControls || !_isInitialized)) ...[
               // Gradient Shade
@@ -750,6 +854,28 @@ class _FullVideoPlayerScreenState extends State<FullVideoPlayerScreen>
                               overflow: TextOverflow.ellipsis,
                             ),
                         ],
+                      ),
+                    ),
+                    // PiP Button
+                    IconButton(
+                      icon: const Icon(Icons.picture_in_picture_alt_rounded, color: Colors.white70),
+                      tooltip: 'Picture-in-Picture',
+                      onPressed: _enterPipMode,
+                    ),
+                    // Quality Selector
+                    TextButton(
+                      onPressed: _showQualityDialog,
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
+                        decoration: BoxDecoration(
+                          border: Border.all(color: AppColors.netflixRed.withOpacity(0.7)),
+                          borderRadius: BorderRadius.circular(4),
+                          color: Colors.black38,
+                        ),
+                        child: Text(
+                          _selectedQuality,
+                          style: const TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.bold),
+                        ),
                       ),
                     ),
                     // Lock Screen Button

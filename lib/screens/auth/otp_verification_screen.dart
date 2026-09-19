@@ -7,6 +7,7 @@ import '../../constants/app_colors.dart';
 import '../../services/api_service.dart';
 import '../../state/app_state.dart';
 import '../main_navigation_screen.dart';
+import 'profile_setup_screen.dart';
 import 'content_language_screen.dart';
 
 class OtpVerificationScreen extends StatefulWidget {
@@ -116,17 +117,25 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen> {
 
     setState(() => _isSubmitting = true);
     try {
-      final isNewUser = await context.read<AppState>().verifyOtp(otp);
+      final authResult = await context.read<AppState>().verifyOtp(otp);
+      final isNewUser = authResult['isNewUser'] as bool? ?? true;
+      final isProfileComplete = authResult['isProfileComplete'] as bool? ?? false;
       if (!mounted) return;
       HapticFeedback.mediumImpact();
-      // Returning users who already finished language + plan selection once
-      // go straight into the app instead of seeing onboarding again.
+
+      Widget targetScreen;
+      if (!isProfileComplete) {
+        targetScreen = const ProfileSetupScreen();
+      } else if (isNewUser) {
+        targetScreen = const ContentLanguageScreen();
+      } else {
+        targetScreen = const MainNavigationScreen();
+      }
+
       Navigator.of(context).pushReplacement(
         PageRouteBuilder(
           transitionDuration: const Duration(milliseconds: 400),
-          pageBuilder: (context, animation, secondaryAnimation) => isNewUser
-              ? const ContentLanguageScreen()
-              : const MainNavigationScreen(),
+          pageBuilder: (context, animation, secondaryAnimation) => targetScreen,
           transitionsBuilder: (context, animation, secondaryAnimation, child) {
             return FadeTransition(
               opacity: CurvedAnimation(parent: animation, curve: Curves.easeOut),

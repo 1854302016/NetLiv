@@ -78,8 +78,14 @@ class AppState extends ChangeNotifier {
   // Auth
   String? _authToken;
   String? _phoneNumber;
+  String? _userName;
+  String? _userGender;
+  int? _userAge;
   bool get isLoggedIn => _authToken != null;
   String? get phoneNumber => _phoneNumber;
+  String? get userName => _userName;
+  String? get userGender => _userGender;
+  int? get userAge => _userAge;
 
   /// Requests an OTP for [phone]. Returns the OTP itself for on-screen testing
   /// until a real SMS gateway is wired up on the backend (never populated in prod).
@@ -92,15 +98,21 @@ class AppState extends ChangeNotifier {
   int _deviceCount = 1;
   int get deviceCount => _deviceCount;
 
-  /// Verifies [otp] and returns whether this account has never finished the
-  /// onboarding (language + plan) flow before.
-  Future<bool> verifyOtp(String otp) async {
+  /// Verifies [otp] and returns onboarding status.
+  Future<Map<String, dynamic>> verifyOtp(String otp) async {
     if (_phoneNumber == null) {
       throw ApiException('No phone number to verify.');
     }
     final result = await ApiService.verifyOtp(_phoneNumber!, otp);
     _authToken = result['token'] as String;
     final isNewUser = result['isNewUser'] as bool;
+    final isProfileComplete = result['isProfileComplete'] as bool;
+    final userData = result['user'] as Map<String, dynamic>?;
+    if (userData != null) {
+      _userName = userData['name'] as String?;
+      _userGender = userData['gender'] as String?;
+      _userAge = userData['age'] as int?;
+    }
 
     // Persist session
     await PreferencesService.setAuthToken(_authToken);
@@ -111,7 +123,35 @@ class AppState extends ChangeNotifier {
     unawaited(loadContinueWatching());
     unawaited(loadNotifications());
     notifyListeners();
-    return isNewUser;
+    return {
+      'isNewUser': isNewUser,
+      'isProfileComplete': isProfileComplete,
+    };
+  }
+
+  /// Updates user profile details (Name, Gender, Age).
+  Future<void> updateUserBasicDetails({
+    required String name,
+    required String gender,
+    required int age,
+  }) async {
+    if (_authToken == null) {
+      throw ApiException('Please sign in to update profile.');
+    }
+    final res = await ApiService.updateUserBasicDetails(
+      _authToken!,
+      name: name,
+      gender: gender,
+      age: age,
+    );
+    final userData = res['user'] as Map<String, dynamic>?;
+    if (userData != null) {
+      _userName = userData['name'] as String?;
+      _userGender = userData['gender'] as String?;
+      _userAge = userData['age'] as int?;
+    }
+    await loadProfiles();
+    notifyListeners();
   }
 
   /// Marks onboarding as finished so it never shows again for this account.
@@ -142,6 +182,9 @@ class AppState extends ChangeNotifier {
     }
     _authToken = null;
     _phoneNumber = null;
+    _userName = null;
+    _userGender = null;
+    _userAge = null;
     _deviceCount = 1;
     _billingHistory = [];
     _paymentMethod = null;

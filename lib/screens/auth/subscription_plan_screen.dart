@@ -230,9 +230,20 @@ class _SubscriptionPlanScreenState extends State<SubscriptionPlanScreen> {
                       ],
                       Image.asset(
                         'assets/images/logo.png',
-                        height: 34,
+                        height: 32,
                         fit: BoxFit.contain,
                       ),
+                      const Spacer(),
+                      if (widget.isOnboarding)
+                        Text(
+                          'STEP 3 OF 3',
+                          style: GoogleFonts.inter(
+                            fontSize: 12,
+                            fontWeight: FontWeight.w700,
+                            color: AppColors.textSecondary,
+                            letterSpacing: 1.2,
+                          ),
+                        ),
                     ],
                   ),
                 ),

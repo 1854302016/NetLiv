@@ -54,14 +54,28 @@ class _ContentLanguageScreenState extends State<ContentLanguageScreen> {
       body: SafeArea(
         child: Column(
           children: [
-            // Top Header: NetLiv Wordmark
+            // Top Header: NetLiv Wordmark & Step indicator
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
               alignment: Alignment.centerLeft,
-              child: Image.asset(
-                'assets/images/logo.png',
-                height: 34,
-                fit: BoxFit.contain,
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Image.asset(
+                    'assets/images/logo.png',
+                    height: 32,
+                    fit: BoxFit.contain,
+                  ),
+                  Text(
+                    'STEP 2 OF 3',
+                    style: GoogleFonts.inter(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w700,
+                      color: AppColors.textSecondary,
+                      letterSpacing: 1.2,
+                    ),
+                  ),
+                ],
               ),
             ),
             

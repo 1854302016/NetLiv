@@ -20,9 +20,9 @@ class ApiService {
     if (_useLiveServer) return 'https://hemtest.webultrademo.com/api';
     if (!kIsWeb && defaultTargetPlatform == TargetPlatform.android) {
       // 10.0.2.2 is the Android emulator's alias for the host machine's localhost.
-      return 'http://10.0.2.2:8123/api';
+      return 'http://10.0.2.2:8000/api';
     }
-    return 'http://127.0.0.1:8123/api';
+    return 'http://127.0.0.1:8000/api';
   }
 
   static Map<String, String> _headers([String? token]) => {
@@ -47,7 +47,10 @@ class ApiService {
   static dynamic _fixHostForEmulator(dynamic value) {
     if (!kIsWeb && defaultTargetPlatform == TargetPlatform.android) {
       if (value is String) {
-        return value.replaceFirst('127.0.0.1:8123', '10.0.2.2:8123');
+        return value
+            .replaceAll('127.0.0.1:8000', '10.0.2.2:8000')
+            .replaceAll('127.0.0.1:8123', '10.0.2.2:8000')
+            .replaceAll('localhost:8000', '10.0.2.2:8000');
       }
       if (value is Map) {
         return value.map((key, v) => MapEntry(key as String, _fixHostForEmulator(v)));
@@ -83,7 +86,36 @@ class ApiService {
     return {
       'token': data['token'] as String,
       'isNewUser': data['isNewUser'] as bool? ?? true,
+      'isProfileComplete': data['isProfileComplete'] as bool? ?? false,
+      'user': data['user'] as Map<String, dynamic>? ?? {},
     };
+  }
+
+  /// Updates user profile details (Name, Gender, Age).
+  static Future<Map<String, dynamic>> updateUserBasicDetails(
+    String token, {
+    required String name,
+    required String gender,
+    required int age,
+    String? avatarUrl,
+  }) async {
+    final response = await http.post(
+      Uri.parse('$_baseUrl/auth/profile'),
+      headers: _headers(token),
+      body: jsonEncode({
+        'name': name,
+        'gender': gender,
+        'age': age,
+        ...?avatarUrl != null ? {'avatar_url': avatarUrl} : null,
+      }),
+    );
+    return _decode(response);
+  }
+
+  /// Fetches the authenticated user's current account details.
+  static Future<Map<String, dynamic>> fetchMe(String token) async {
+    final response = await http.get(Uri.parse('$_baseUrl/auth/me'), headers: _headers(token));
+    return _decode(response);
   }
 
   /// Marks onboarding (language + plan selection) as finished for the
