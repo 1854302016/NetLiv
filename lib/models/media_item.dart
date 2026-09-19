@@ -16,6 +16,7 @@ class MediaItem {
   final MediaType type;
   final bool isOriginal;
   final bool isTrending;
+  final bool isPaid;
   final int? topTenRank; // 1 to 10 if in Top 10
   final double? watchProgress; // 0.0 to 1.0 for Continue Watching
   final List<String> cast;
@@ -38,6 +39,7 @@ class MediaItem {
     required this.type,
     this.isOriginal = false,
     this.isTrending = false,
+    this.isPaid = true,
     this.topTenRank,
     this.watchProgress,
     this.cast = const [],
@@ -63,6 +65,7 @@ class MediaItem {
       type: json['type'] == 'series' ? MediaType.series : MediaType.movie,
       isOriginal: json['isOriginal'] as bool? ?? false,
       isTrending: json['isTrending'] as bool? ?? false,
+      isPaid: json['is_paid'] as bool? ?? json['isPaid'] as bool? ?? true,
       topTenRank: json['topTenRank'] as int?,
       cast: List<String>.from(json['cast'] as List? ?? []),
       creators: List<String>.from(json['creators'] as List? ?? []),

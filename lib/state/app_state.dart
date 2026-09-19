@@ -72,6 +72,7 @@ class AppState extends ChangeNotifier {
       unawaited(_refreshDeviceCount());
       unawaited(loadContinueWatching());
       unawaited(loadNotifications());
+      unawaited(refreshSubscriptionStatus());
     }
   }
 
@@ -86,6 +87,43 @@ class AppState extends ChangeNotifier {
   String? get userName => _userName;
   String? get userGender => _userGender;
   int? get userAge => _userAge;
+
+  // Subscription & Expiry state
+  bool _hasActiveSubscription = false;
+  bool _isSubscriptionExpiringSoon = false;
+  int _subscriptionDaysLeft = 0;
+  String? _activePlanName;
+  String? _subscriptionExpiresAt;
+
+  bool get hasActiveSubscription => _hasActiveSubscription;
+  bool get isSubscriptionExpiringSoon => _isSubscriptionExpiringSoon;
+  int get subscriptionDaysLeft => _subscriptionDaysLeft;
+  String? get activePlanName => _activePlanName;
+  String? get subscriptionExpiresAt => _subscriptionExpiresAt;
+
+  Future<void> refreshSubscriptionStatus() async {
+    if (_authToken == null) {
+      _hasActiveSubscription = false;
+      _isSubscriptionExpiringSoon = false;
+      _subscriptionDaysLeft = 0;
+      _activePlanName = null;
+      _subscriptionExpiresAt = null;
+      notifyListeners();
+      return;
+    }
+    try {
+      final me = await ApiService.fetchMe(_authToken!);
+      final sub = me['subscription'] as Map<String, dynamic>?;
+      if (sub != null) {
+        _hasActiveSubscription = sub['hasActiveSubscription'] as bool? ?? false;
+        _isSubscriptionExpiringSoon = sub['isExpiringSoon'] as bool? ?? false;
+        _subscriptionDaysLeft = sub['daysLeft'] as int? ?? 0;
+        _activePlanName = sub['planName'] as String?;
+        _subscriptionExpiresAt = sub['expiresAt'] as String?;
+      }
+      notifyListeners();
+    } catch (_) {}
+  }
 
   /// Requests an OTP for [phone]. Returns the OTP itself for on-screen testing
   /// until a real SMS gateway is wired up on the backend (never populated in prod).
@@ -122,6 +160,7 @@ class AppState extends ChangeNotifier {
     unawaited(_refreshDeviceCount());
     unawaited(loadContinueWatching());
     unawaited(loadNotifications());
+    unawaited(refreshSubscriptionStatus());
     notifyListeners();
     return {
       'isNewUser': isNewUser,
@@ -207,16 +246,17 @@ class AppState extends ChangeNotifier {
     required String orderId,
     required String paymentId,
     required String signature,
-  }) {
+  }) async {
     if (_authToken == null) {
       throw ApiException('Please sign in to subscribe to a plan.');
     }
-    return ApiService.verifyPayment(
+    await ApiService.verifyPayment(
       _authToken!,
       orderId: orderId,
       paymentId: paymentId,
       signature: signature,
     );
+    await refreshSubscriptionStatus();
   }
 
   List<BillingRecord> _billingHistory = [];

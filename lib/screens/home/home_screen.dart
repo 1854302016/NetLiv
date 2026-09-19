@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
 import '../../constants/app_colors.dart';
 import '../../models/home_feed.dart';
@@ -7,6 +8,7 @@ import '../../state/app_state.dart';
 import '../../widgets/banner_carousel.dart';
 import '../../widgets/content_row.dart';
 import '../../widgets/custom_app_bar.dart';
+import '../auth/subscription_plan_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -160,6 +162,79 @@ class _HomeScreenState extends State<HomeScreen> {
                 children: [
                   // Hero Banner Carousel
                   BannerCarousel(items: banners),
+
+                  // 5 Days Subscription Expiry Alert Banner
+                  if (appState.isSubscriptionExpiringSoon)
+                    Container(
+                      margin: const EdgeInsets.fromLTRB(16, 12, 16, 4),
+                      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                      decoration: BoxDecoration(
+                        gradient: const LinearGradient(
+                          colors: [Color(0xFF4A1010), Color(0xFF200505)],
+                          begin: Alignment.topLeft,
+                          end: Alignment.bottomRight,
+                        ),
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(color: AppColors.netflixRed.withOpacity(0.6), width: 1.2),
+                      ),
+                      child: Row(
+                        children: [
+                          Container(
+                            padding: const EdgeInsets.all(8),
+                            decoration: BoxDecoration(
+                              color: AppColors.netflixRed.withOpacity(0.2),
+                              shape: BoxShape.circle,
+                            ),
+                            child: const Icon(Icons.timer_outlined, color: AppColors.netflixRed, size: 20),
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  'Plan Expiring in ${appState.subscriptionDaysLeft} Days!',
+                                  style: GoogleFonts.inter(
+                                    color: Colors.white,
+                                    fontSize: 13.5,
+                                    fontWeight: FontWeight.w700,
+                                  ),
+                                ),
+                                const SizedBox(height: 2),
+                                Text(
+                                  'Renew your ${appState.activePlanName ?? 'VIP'} plan now to keep watching without disruption.',
+                                  style: GoogleFonts.inter(
+                                    color: const Color(0xFFCCCCCC),
+                                    fontSize: 11.5,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          ElevatedButton(
+                            onPressed: () {
+                              Navigator.of(context).push(
+                                MaterialPageRoute(
+                                  builder: (_) => const SubscriptionPlanScreen(isOnboarding: false),
+                                ),
+                              );
+                            },
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: AppColors.netflixRed,
+                              foregroundColor: Colors.white,
+                              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
+                              visualDensity: VisualDensity.compact,
+                            ),
+                            child: Text(
+                              'Renew',
+                              style: GoogleFonts.inter(fontSize: 12, fontWeight: FontWeight.w700),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
 
                   const SizedBox(height: 10),
 

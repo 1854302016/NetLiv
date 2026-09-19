@@ -87,6 +87,7 @@ class ApiService {
       'token': data['token'] as String,
       'isNewUser': data['isNewUser'] as bool? ?? true,
       'isProfileComplete': data['isProfileComplete'] as bool? ?? false,
+      'subscription': data['subscription'] as Map<String, dynamic>? ?? {},
       'user': data['user'] as Map<String, dynamic>? ?? {},
     };
   }
