@@ -407,7 +407,7 @@ class ApiService {
       headers: _headers(token),
       body: jsonEncode({
         'media_id': mediaId,
-        if (episodeId != null) 'episode_id': episodeId,
+        'episode_id': ?episodeId,
       }),
     );
     return _decode(response);
