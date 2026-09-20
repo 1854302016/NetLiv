@@ -73,7 +73,7 @@ class _AuditionHubScreenState extends State<AuditionHubScreen> with SingleTicker
     }
 
     final fee = audition?.registrationFee ?? _feeInfo?.registrationFee ?? 199.0;
-    final hasPass = _feeInfo?.hasPaidPass == true;
+    final hasPass = appState.hasActiveSubscription || _feeInfo?.hasPaidPass == true || _feeInfo?.isVip == true;
 
     if (hasPass) {
       _openApplicationForm(audition);
@@ -510,6 +510,9 @@ class _AuditionHubScreenState extends State<AuditionHubScreen> with SingleTicker
   }
 
   Widget _buildAuditionCard(AuditionCall audition) {
+    final appState = Provider.of<AppState>(context, listen: false);
+    final hasPass = appState.hasActiveSubscription || _feeInfo?.hasPaidPass == true || _feeInfo?.isVip == true;
+
     return Container(
       margin: const EdgeInsets.only(bottom: 16),
       decoration: BoxDecoration(
@@ -546,8 +549,12 @@ class _AuditionHubScreenState extends State<AuditionHubScreen> with SingleTicker
                       ),
                     ),
                     Text(
-                      'Fee: ₹${audition.registrationFee.toInt()}',
-                      style: GoogleFonts.outfit(color: const Color(0xFF46D369), fontSize: 13, fontWeight: FontWeight.w800),
+                      hasPass ? '✨ 100% FREE (VIP)' : 'Fee: ₹${audition.registrationFee.toInt()}',
+                      style: GoogleFonts.outfit(
+                        color: hasPass ? const Color(0xFFFFD700) : const Color(0xFF46D369),
+                        fontSize: 13,
+                        fontWeight: FontWeight.w800,
+                      ),
                     ),
                   ],
                 ),
@@ -588,7 +595,10 @@ class _AuditionHubScreenState extends State<AuditionHubScreen> with SingleTicker
                       backgroundColor: const Color(0xFFE50914),
                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
                     ),
-                    child: Text('Apply for this Audition 🎬', style: GoogleFonts.outfit(fontSize: 13, fontWeight: FontWeight.w700)),
+                    child: Text(
+                      hasPass ? 'Apply for Free (VIP Access) 🎬' : 'Apply for this Audition 🎬',
+                      style: GoogleFonts.outfit(fontSize: 13, fontWeight: FontWeight.w700),
+                    ),
                   ),
                 ),
               ],

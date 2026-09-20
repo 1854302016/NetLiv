@@ -96,12 +96,14 @@ class AuditionFeeInfo {
   final double registrationFee;
   final String currency;
   final bool hasPaidPass;
+  final bool isVip;
   final int submissionCount;
 
   AuditionFeeInfo({
     required this.registrationFee,
     required this.currency,
     required this.hasPaidPass,
+    this.isVip = false,
     required this.submissionCount,
   });
 
@@ -110,6 +112,7 @@ class AuditionFeeInfo {
       registrationFee: (json['registrationFee'] as num?)?.toDouble() ?? 199.0,
       currency: json['currency'] as String? ?? 'INR',
       hasPaidPass: json['hasPaidPass'] as bool? ?? false,
+      isVip: json['isVip'] as bool? ?? false,
       submissionCount: json['submissionCount'] as int? ?? 0,
     );
   }
