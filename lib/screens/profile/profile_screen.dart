@@ -514,22 +514,40 @@ class ProfileScreen extends StatelessWidget {
           'You will need to sign in again to access downloads and personal watchlists.',
           style: AppTypography.bodyMedium,
         ),
+        actionsPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: Text('Cancel', style: AppTypography.chip),
+            child: Text(
+              'Cancel',
+              style: AppTypography.chip.copyWith(color: AppColors.textMuted),
+            ),
           ),
           ElevatedButton(
-            style: ElevatedButton.styleFrom(backgroundColor: AppColors.error),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFFE50914), // High-contrast crimson red
+              foregroundColor: Colors.white,
+              elevation: 0,
+              padding: const EdgeInsets.symmetric(horizontal: 22, vertical: 10),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+            ),
             onPressed: () async {
               Navigator.pop(context);
               await appState.logout();
               if (!context.mounted) return;
-              Navigator.of(context).pushReplacement(
+              Navigator.of(context).pushAndRemoveUntil(
                 MaterialPageRoute(builder: (_) => const NetflixLandingScreen()),
+                (route) => false,
               );
             },
-            child: const Text('Sign Out'),
+            child: const Text(
+              'Sign Out',
+              style: TextStyle(
+                color: Colors.white,
+                fontWeight: FontWeight.w700,
+                fontSize: 14,
+              ),
+            ),
           ),
         ],
       ),

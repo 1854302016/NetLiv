@@ -48,11 +48,7 @@ class _SplashScreenState extends State<SplashScreen>
     Widget targetScreen;
 
     if (appState.isLoggedIn) {
-      if (!appState.isProfileComplete) {
-        targetScreen = const ProfileSetupScreen();
-      } else {
-        targetScreen = const MainNavigationScreen();
-      }
+      targetScreen = const MainNavigationScreen();
     } else {
       targetScreen = const NetflixLandingScreen();
     }

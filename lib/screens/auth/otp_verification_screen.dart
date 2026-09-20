@@ -117,25 +117,15 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen> {
 
     setState(() => _isSubmitting = true);
     try {
-      final authResult = await context.read<AppState>().verifyOtp(otp);
-      final isNewUser = authResult['isNewUser'] as bool? ?? true;
-      final isProfileComplete = authResult['isProfileComplete'] as bool? ?? false;
+      await context.read<AppState>().verifyOtp(otp);
       if (!mounted) return;
       HapticFeedback.mediumImpact();
 
-      Widget targetScreen;
-      if (!isProfileComplete) {
-        targetScreen = const ProfileSetupScreen();
-      } else if (isNewUser) {
-        targetScreen = const ContentLanguageScreen();
-      } else {
-        targetScreen = const MainNavigationScreen();
-      }
-
-      Navigator.of(context).pushReplacement(
+      Navigator.of(context).pushAndRemoveUntil(
         PageRouteBuilder(
           transitionDuration: const Duration(milliseconds: 400),
-          pageBuilder: (context, animation, secondaryAnimation) => targetScreen,
+          pageBuilder: (context, animation, secondaryAnimation) =>
+              const MainNavigationScreen(),
           transitionsBuilder: (context, animation, secondaryAnimation, child) {
             return FadeTransition(
               opacity: CurvedAnimation(parent: animation, curve: Curves.easeOut),
@@ -143,6 +133,7 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen> {
             );
           },
         ),
+        (route) => false,
       );
     } on ApiException catch (e) {
       if (!mounted) return;
