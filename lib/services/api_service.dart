@@ -16,7 +16,7 @@ class ApiService {
   /// the live server has the matching backend code deployed.
   static const bool _useLiveServer = true;
 
-  static String get _baseUrl {
+  static String get baseUrl {
     if (_useLiveServer) return 'https://www.netliveplus.com/api';
     if (!kIsWeb && defaultTargetPlatform == TargetPlatform.android) {
       // 10.0.2.2 is the Android emulator's alias for the host machine's localhost.
@@ -24,6 +24,8 @@ class ApiService {
     }
     return 'http://127.0.0.1:8000/api';
   }
+
+  static String get _baseUrl => baseUrl;
 
   static Map<String, String> _headers([String? token]) => {
         'Content-Type': 'application/json',

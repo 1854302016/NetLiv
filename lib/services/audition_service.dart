@@ -1,20 +1,11 @@
 import 'dart:convert';
 import 'dart:io';
-import 'package:flutter/foundation.dart' show kIsWeb, defaultTargetPlatform, TargetPlatform;
 import 'package:http/http.dart' as http;
 import '../models/audition_model.dart';
 import 'api_service.dart';
 
 class AuditionService {
-  static const bool _useLiveServer = false;
-
-  static String get _baseUrl {
-    if (_useLiveServer) return 'https://hemtest.webultrademo.com/api';
-    if (!kIsWeb && defaultTargetPlatform == TargetPlatform.android) {
-      return 'http://10.0.2.2:8000/api';
-    }
-    return 'http://127.0.0.1:8000/api';
-  }
+  static String get _baseUrl => ApiService.baseUrl;
 
   static Map<String, String> _headers([String? token]) => {
         'Accept': 'application/json',
@@ -23,7 +14,9 @@ class AuditionService {
 
   /// Fetch list of open audition calls
   static Future<List<AuditionCall>> fetchAuditions() async {
-    final response = await http.get(Uri.parse('$_baseUrl/auditions'), headers: _headers());
+    final response = await http
+        .get(Uri.parse('$_baseUrl/auditions'), headers: _headers())
+        .timeout(const Duration(seconds: 10));
     if (response.statusCode >= 400) {
       throw ApiException('Failed to load auditions.');
     }
@@ -34,7 +27,9 @@ class AuditionService {
 
   /// Fetch audition registration fee and user pass status
   static Future<AuditionFeeInfo> fetchFeeInfo(String token) async {
-    final response = await http.get(Uri.parse('$_baseUrl/auditions/fee-info'), headers: _headers(token));
+    final response = await http
+        .get(Uri.parse('$_baseUrl/auditions/fee-info'), headers: _headers(token))
+        .timeout(const Duration(seconds: 10));
     if (response.statusCode >= 400) {
       throw ApiException('Failed to load audition pass details.');
     }
@@ -50,7 +45,7 @@ class AuditionService {
       body: jsonEncode({
         ...?auditionId != null ? {'auditionId': auditionId} : null,
       }),
-    );
+    ).timeout(const Duration(seconds: 15));
     if (response.statusCode >= 400) {
       final body = jsonDecode(response.body);
       throw ApiException(body['message'] ?? 'Could not initiate audition checkout.');
@@ -73,7 +68,7 @@ class AuditionService {
         'razorpay_payment_id': paymentId,
         ...?signature != null ? {'razorpay_signature': signature} : null,
       }),
-    );
+    ).timeout(const Duration(seconds: 15));
     if (response.statusCode >= 400) {
       final body = jsonDecode(response.body);
       throw ApiException(body['message'] ?? 'Payment verification failed.');
@@ -120,7 +115,7 @@ class AuditionService {
       }
     }
 
-    final streamedResponse = await request.send();
+    final streamedResponse = await request.send().timeout(const Duration(seconds: 60));
     final response = await http.Response.fromStream(streamedResponse);
 
     if (response.statusCode >= 400) {
@@ -131,7 +126,9 @@ class AuditionService {
 
   /// Fetch Candidate's submitted auditions and real-time status
   static Future<List<AuditionSubmissionItem>> fetchMySubmissions(String token) async {
-    final response = await http.get(Uri.parse('$_baseUrl/auditions/my-submissions'), headers: _headers(token));
+    final response = await http
+        .get(Uri.parse('$_baseUrl/auditions/my-submissions'), headers: _headers(token))
+        .timeout(const Duration(seconds: 10));
     if (response.statusCode >= 400) {
       throw ApiException('Failed to load your audition applications.');
     }

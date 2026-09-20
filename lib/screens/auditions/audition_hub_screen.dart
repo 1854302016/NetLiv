@@ -41,20 +41,31 @@ class _AuditionHubScreenState extends State<AuditionHubScreen> with SingleTicker
     final token = appState.authToken;
 
     try {
-      final auditions = await AuditionService.fetchAuditions();
-      AuditionFeeInfo? feeInfo;
-      List<AuditionSubmissionItem> submissions = [];
+      final auditionsFuture = AuditionService.fetchAuditions().catchError((_) => <AuditionCall>[]);
+      final feeInfoFuture = token != null
+          ? AuditionService.fetchFeeInfo(token).catchError((_) => AuditionFeeInfo(
+                registrationFee: 49.0,
+                currency: 'INR',
+                hasPaidPass: appState.hasActiveSubscription,
+                isVip: appState.hasActiveSubscription,
+                submissionCount: 0,
+              ))
+          : Future<AuditionFeeInfo?>.value(null);
+      final submissionsFuture = token != null
+          ? AuditionService.fetchMySubmissions(token).catchError((_) => <AuditionSubmissionItem>[])
+          : Future<List<AuditionSubmissionItem>>.value([]);
 
-      if (token != null) {
-        feeInfo = await AuditionService.fetchFeeInfo(token);
-        submissions = await AuditionService.fetchMySubmissions(token);
-      }
+      final results = await Future.wait([
+        auditionsFuture,
+        feeInfoFuture,
+        submissionsFuture,
+      ]);
 
       if (mounted) {
         setState(() {
-          _auditions = auditions;
-          _feeInfo = feeInfo;
-          _mySubmissions = submissions;
+          _auditions = results[0] as List<AuditionCall>;
+          _feeInfo = results[1] as AuditionFeeInfo?;
+          _mySubmissions = results[2] as List<AuditionSubmissionItem>;
           _isLoading = false;
         });
       }
