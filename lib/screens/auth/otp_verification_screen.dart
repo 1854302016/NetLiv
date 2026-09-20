@@ -7,8 +7,6 @@ import '../../constants/app_colors.dart';
 import '../../services/api_service.dart';
 import '../../state/app_state.dart';
 import '../main_navigation_screen.dart';
-import 'profile_setup_screen.dart';
-import 'content_language_screen.dart';
 
 class OtpVerificationScreen extends StatefulWidget {
   final String mobileNumber;

@@ -5,7 +5,6 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
 import '../../state/app_state.dart';
-import '../auth/profile_setup_screen.dart';
 import '../landing/netflix_landing_screen.dart';
 import '../main_navigation_screen.dart';
 
