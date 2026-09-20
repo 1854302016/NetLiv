@@ -63,13 +63,14 @@ class _AuditionPaywallModalState extends State<AuditionPaywallModal> {
         paymentId: response.paymentId ?? '',
         signature: response.signature,
       );
+      await appState.refreshSubscriptionStatus();
       if (mounted) {
         Navigator.pop(context);
         widget.onPaymentSuccess();
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
             backgroundColor: Color(0xFF16A34A),
-            content: Text('🎉 Audition Pass Activated! Opening Application Form...'),
+            content: Text('🎉 VIP & Auditions Activated! Opening Application Form...'),
           ),
         );
       }
@@ -230,7 +231,7 @@ class _AuditionPaywallModalState extends State<AuditionPaywallModal> {
 
           // Title
           Text(
-            widget.auditionTitle ?? 'NetLiv Talent Audition Pass',
+            'NetLiv VIP All-Access Pass',
             textAlign: TextAlign.center,
             style: GoogleFonts.outfit(
               color: Colors.white,
@@ -240,7 +241,7 @@ class _AuditionPaywallModalState extends State<AuditionPaywallModal> {
           ),
           const SizedBox(height: 8),
           Text(
-            'Unlock your application form & showcase your talent to NetLiv Casting Directors.',
+            'Unlock full audition submissions + unlimited 4K movies & web series for just ₹49/month.',
             textAlign: TextAlign.center,
             style: GoogleFonts.outfit(
               color: Colors.white70,
@@ -265,7 +266,7 @@ class _AuditionPaywallModalState extends State<AuditionPaywallModal> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      'Registration Fee',
+                      'All-Access Membership',
                       style: GoogleFonts.outfit(
                         color: Colors.white54,
                         fontSize: 12,
@@ -274,7 +275,7 @@ class _AuditionPaywallModalState extends State<AuditionPaywallModal> {
                     ),
                     const SizedBox(height: 2),
                     Text(
-                      'One-time Audition Fee',
+                      'VIP Plan (Movies + Auditions)',
                       style: GoogleFonts.outfit(
                         color: Colors.white,
                         fontSize: 14,
@@ -284,7 +285,7 @@ class _AuditionPaywallModalState extends State<AuditionPaywallModal> {
                   ],
                 ),
                 Text(
-                  '₹${widget.fee.toInt()}',
+                  '₹49',
                   style: GoogleFonts.outfit(
                     color: const Color(0xFF46D369),
                     fontSize: 28,
@@ -297,10 +298,10 @@ class _AuditionPaywallModalState extends State<AuditionPaywallModal> {
           const SizedBox(height: 16),
 
           // Benefits List
-          _buildBenefitItem('🎬 Direct review by NetLiv original directors & casting team'),
-          _buildBenefitItem('📹 Upload your monologue video, script sample, or portfolio'),
-          _buildBenefitItem('📞 Guaranteed real-time callback & audition status updates'),
-          _buildBenefitItem('🌟 Chance to star in upcoming NetLiv Web Series & Movies'),
+          _buildBenefitItem('🎬 Direct review by NetLiv original casting team'),
+          _buildBenefitItem('🎭 Unlimited audition video & script submissions'),
+          _buildBenefitItem('🍿 Unlimited 4K Movies, Web Series & Audio Stories'),
+          _buildBenefitItem('📺 Watch on Mobile, Tablet & Smart TV'),
           const SizedBox(height: 20),
 
           if (_errorMessage != null) ...[
@@ -342,7 +343,7 @@ class _AuditionPaywallModalState extends State<AuditionPaywallModal> {
                         const Icon(Icons.lock_open, color: Colors.white, size: 18),
                         const SizedBox(width: 8),
                         Text(
-                          'Pay ₹${widget.fee.toInt()} & Apply Now',
+                          'Join VIP for ₹49 & Apply Now',
                           style: GoogleFonts.outfit(
                             color: Colors.white,
                             fontSize: 16,
@@ -355,7 +356,7 @@ class _AuditionPaywallModalState extends State<AuditionPaywallModal> {
           ),
           const SizedBox(height: 10),
           Text(
-            'Secured by Razorpay • 100% Verified Casting',
+            'Secured by Razorpay • Instant VIP & Audition Activation',
             textAlign: TextAlign.center,
             style: GoogleFonts.outfit(
               color: Colors.white38,
