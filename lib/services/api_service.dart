@@ -324,4 +324,114 @@ class ApiService {
     );
     await _decode(response);
   }
+
+  /// Validates a discount promo coupon code.
+  static Future<Map<String, dynamic>> validateCoupon(String code, double amount) async {
+    final response = await http.post(
+      Uri.parse('$_baseUrl/coupons/validate'),
+      headers: _headers(),
+      body: jsonEncode({'code': code, 'amount': amount}),
+    );
+    return _decode(response);
+  }
+
+  /// Fetches audio dramas & stories feed (Pocket FM mode).
+  static Future<List<dynamic>> fetchAudioStories() async {
+    final response = await http.get(Uri.parse('$_baseUrl/audio-stories'), headers: _headers());
+    return _decodeList(response);
+  }
+
+  /// Fetches AI mood categories.
+  static Future<List<dynamic>> fetchMoods() async {
+    final response = await http.get(Uri.parse('$_baseUrl/recommendations/moods'), headers: _headers());
+    return _decodeList(response);
+  }
+
+  /// Fetches AI recommendations based on user mood.
+  static Future<List<dynamic>> fetchMoodRecommendations(String mood) async {
+    final response = await http.get(Uri.parse('$_baseUrl/recommendations/by-mood?mood=$mood'), headers: _headers());
+    return _decodeList(response);
+  }
+
+  /// Fetches active 24x7 Live TV Channels.
+  static Future<List<dynamic>> fetchLiveChannels() async {
+    final response = await http.get(Uri.parse('$_baseUrl/live-channels'), headers: _headers());
+    return _decodeList(response);
+  }
+
+  /// Fetches top voted Star Hunt Audition Leaderboard.
+  static Future<List<dynamic>> fetchAuditionLeaderboard({String? token}) async {
+    final response = await http.get(Uri.parse('$_baseUrl/auditions/leaderboard'), headers: _headers(token));
+    return _decodeList(response);
+  }
+
+  /// Casts a public vote for a shortlisted candidate.
+  static Future<Map<String, dynamic>> voteForAudition(String token, int submissionId) async {
+    final response = await http.post(
+      Uri.parse('$_baseUrl/auditions/$submissionId/vote'),
+      headers: _headers(token),
+    );
+    return _decode(response);
+  }
+
+  /// Fetches user's referral code and invite statistics.
+  static Future<Map<String, dynamic>> fetchReferralInfo(String token) async {
+    final response = await http.get(Uri.parse('$_baseUrl/referrals/my-info'), headers: _headers(token));
+    return _decode(response);
+  }
+
+  /// Applies a friend's referral code.
+  static Future<Map<String, dynamic>> applyReferralCode(String token, String code) async {
+    final response = await http.post(
+      Uri.parse('$_baseUrl/referrals/apply'),
+      headers: _headers(token),
+      body: jsonEncode({'referral_code': code}),
+    );
+    return _decode(response);
+  }
+
+  /// Fetches Coin Wallet balance and coin packages.
+  static Future<Map<String, dynamic>> fetchWalletInfo(String token) async {
+    final response = await http.get(Uri.parse('$_baseUrl/wallet/info'), headers: _headers(token));
+    return _decode(response);
+  }
+
+  /// Unlocks an episode or movie with coins.
+  static Future<Map<String, dynamic>> unlockItemWithCoins(
+    String token,
+    String mediaId, {
+    String? episodeId,
+  }) async {
+    final response = await http.post(
+      Uri.parse('$_baseUrl/wallet/unlock-item'),
+      headers: _headers(token),
+      body: jsonEncode({
+        'media_id': mediaId,
+        if (episodeId != null) 'episode_id': episodeId,
+      }),
+    );
+    return _decode(response);
+  }
+
+  /// Submits an independent film to the creator portal.
+  static Future<Map<String, dynamic>> submitCreatorFilm(String token, Map<String, dynamic> data) async {
+    final response = await http.post(
+      Uri.parse('$_baseUrl/creator/submit-film'),
+      headers: _headers(token),
+      body: jsonEncode(data),
+    );
+    return _decode(response);
+  }
+
+  /// Fetches filmmaker submissions and royalty earnings.
+  static Future<List<dynamic>> fetchCreatorSubmissions(String token) async {
+    final response = await http.get(Uri.parse('$_baseUrl/creator/my-submissions'), headers: _headers(token));
+    return _decodeList(response);
+  }
+
+  /// Fetches curated avatar presets.
+  static Future<List<dynamic>> fetchProfileAvatars() async {
+    final response = await http.get(Uri.parse('$_baseUrl/profiles/avatars'), headers: _headers());
+    return _decodeList(response);
+  }
 }
