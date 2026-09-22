@@ -506,18 +506,24 @@ class ProfileScreen extends StatelessWidget {
   void _confirmSignOut(BuildContext context, AppState appState) {
     showDialog(
       context: context,
-      builder: (context) => AlertDialog(
-        backgroundColor: AppColors.surfaceElevated,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: Text('Sign Out of NetLiv?', style: AppTypography.titleMedium),
+      builder: (dialogContext) => AlertDialog(
+        backgroundColor: const Color(0xFF1E1E1E), // Dark modern container
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: Text(
+          'Sign Out?',
+          style: AppTypography.titleLarge.copyWith(
+            fontWeight: FontWeight.bold,
+            color: Colors.white,
+          ),
+        ),
         content: Text(
-          'You will need to sign in again to access downloads and personal watchlists.',
+          'Are you sure you want to sign out of your NetLiv account on this device?',
           style: AppTypography.bodyMedium,
         ),
         actionsPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
         actions: [
           TextButton(
-            onPressed: () => Navigator.pop(context),
+            onPressed: () => Navigator.of(dialogContext).pop(),
             child: Text(
               'Cancel',
               style: AppTypography.chip.copyWith(color: AppColors.textMuted),
@@ -532,10 +538,10 @@ class ProfileScreen extends StatelessWidget {
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
             ),
             onPressed: () async {
-              Navigator.pop(context);
+              final navigator = Navigator.of(context, rootNavigator: true);
+              Navigator.of(dialogContext).pop();
               await appState.logout();
-              if (!context.mounted) return;
-              Navigator.of(context).pushAndRemoveUntil(
+              navigator.pushAndRemoveUntil(
                 MaterialPageRoute(builder: (_) => const NetflixLandingScreen()),
                 (route) => false,
               );

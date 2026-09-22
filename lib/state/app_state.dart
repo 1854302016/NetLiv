@@ -301,6 +301,7 @@ class AppState extends ChangeNotifier {
     _billingHistory = [];
     _paymentMethod = null;
     _billingLoaded = false;
+    _currentTabIndex = 0;
     await PreferencesService.clearAuthSession();
     _rebuildContinueWatchingFromLocal();
     notifyListeners();
