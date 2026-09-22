@@ -94,6 +94,9 @@ class _ShortsScreenState extends State<ShortsScreen> {
             subtitle: short.subtitle,
             imageUrl: short.thumbnailUrl,
             videoUrl: short.videoUrl,
+            initialLikes: short.likesCount,
+            initialShares: short.sharesCount,
+            initialComments: short.commentsCount,
             isActive: index == _currentIndex,
           );
         },
@@ -108,6 +111,9 @@ class _ShortsVideoItem extends StatefulWidget {
   final String subtitle;
   final String imageUrl;
   final String videoUrl;
+  final int initialLikes;
+  final int initialShares;
+  final int initialComments;
   final bool isActive;
 
   const _ShortsVideoItem({
@@ -116,6 +122,9 @@ class _ShortsVideoItem extends StatefulWidget {
     required this.subtitle,
     required this.imageUrl,
     required this.videoUrl,
+    this.initialLikes = 1420,
+    this.initialShares = 340,
+    this.initialComments = 24,
     required this.isActive,
   });
 
@@ -125,6 +134,8 @@ class _ShortsVideoItem extends StatefulWidget {
 
 class _ShortsVideoItemState extends State<_ShortsVideoItem> {
   bool _isLiked = false;
+  late int _likesCount;
+  late int _sharesCount;
   VideoPlayerController? _controller;
   bool _isInitialized = false;
 
@@ -133,6 +144,18 @@ class _ShortsVideoItemState extends State<_ShortsVideoItem> {
     {'user': 'rahul.otaku', 'text': 'The VFX here is insane 🔥'},
     {'user': 'movie_buff22', 'text': 'Adding this to my watchlist right now.'},
   ];
+
+  String _formatCount(int count) {
+    if (count >= 1000000) {
+      final val = (count / 1000000).toStringAsFixed(1);
+      return '${val.endsWith(".0") ? val.substring(0, val.length - 2) : val}M';
+    }
+    if (count >= 1000) {
+      final val = (count / 1000).toStringAsFixed(1);
+      return '${val.endsWith(".0") ? val.substring(0, val.length - 2) : val}K';
+    }
+    return count.toString();
+  }
 
   MediaItem get _mediaItem => MediaItem(
         id: widget.id,
@@ -151,6 +174,8 @@ class _ShortsVideoItemState extends State<_ShortsVideoItem> {
   @override
   void initState() {
     super.initState();
+    _likesCount = widget.initialLikes;
+    _sharesCount = widget.initialShares;
     _initPlayer();
   }
 
@@ -498,26 +523,32 @@ class _ShortsVideoItemState extends State<_ShortsVideoItem> {
               children: [
                 _buildInteractionButton(
                   icon: _isLiked ? Icons.favorite_rounded : Icons.favorite_border_rounded,
-                  label: 'Like',
+                  label: _formatCount(_likesCount),
                   iconColor: _isLiked ? AppColors.netflixRed : Colors.white,
                   onTap: () {
                     HapticFeedback.lightImpact();
-                    setState(() => _isLiked = !_isLiked);
+                    setState(() {
+                      _isLiked = !_isLiked;
+                      _likesCount += _isLiked ? 1 : -1;
+                    });
                   },
                 ).animate(target: _isLiked ? 1 : 0).scaleXY(begin: 1.0, end: 1.2, duration: 150.ms).then().scaleXY(end: 1.0, duration: 150.ms),
-                const SizedBox(height: 24),
+                const SizedBox(height: 20),
                 _buildInteractionButton(
                   icon: Icons.chat_bubble_outline_rounded,
-                  label: 'Comment',
+                  label: _formatCount(_comments.length + widget.initialComments - 3),
                   onTap: _showComments,
                 ),
-                const SizedBox(height: 24),
+                const SizedBox(height: 20),
                 _buildInteractionButton(
                   icon: Icons.send_rounded,
-                  label: 'Share',
-                  onTap: _shareShort,
+                  label: _formatCount(_sharesCount),
+                  onTap: () {
+                    setState(() => _sharesCount += 1);
+                    _shareShort();
+                  },
                 ),
-                const SizedBox(height: 24),
+                const SizedBox(height: 20),
                 _buildInteractionButton(
                   icon: Icons.more_vert_rounded,
                   label: 'More',
