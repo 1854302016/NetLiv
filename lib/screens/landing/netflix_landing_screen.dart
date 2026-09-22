@@ -15,9 +15,10 @@ import '../auth/login_screen.dart';
 import '../auth/profile_setup_screen.dart';
 import '../main_navigation_screen.dart';
 
-/// Full, authentic replica of the official Netflix Landing Homepage based on user reference images.
-/// Includes Hero with mosaic posters & pricing, curved arc divider, outlined Top 10 carousel,
-/// "More reasons to join" feature cards, interactive FAQ accordion, and authentic footer.
+/// Unique, High-Converting NetLiv Landing Experience.
+/// Integrates Dual-Portal (Cinema Streaming & Auditions Casting),
+/// 3D Holographic VIP Pass (₹49), Interactive Mood Selector,
+/// NetLiv Wall of Fame (Selected Stars Showcase), and Value Comparison.
 class NetflixLandingScreen extends StatefulWidget {
   const NetflixLandingScreen({super.key});
 
@@ -33,6 +34,20 @@ class _NetflixLandingScreenState extends State<NetflixLandingScreen> {
 
   String _selectedLanguage = 'English';
   final List<String> _languages = ['English', 'हिन्दी', 'ਪੰਜਾਬੀ', 'भोजपुरी', 'Español'];
+
+  // Dual-Portal Mode: false = Cinema Stream, true = Auditions & Casting
+  bool _isAuditionMode = false;
+
+  // Active Mood Filter
+  String _selectedMood = '🔥 All Trending';
+  final List<String> _moods = [
+    '🔥 All Trending',
+    '💥 Action Thrillers',
+    '😂 Comedy',
+    '❤️ Romance',
+    '😱 Crime & Mystery',
+    '🎵 Musical & Shorts',
+  ];
 
   @override
   void initState() {
@@ -66,8 +81,7 @@ class _NetflixLandingScreenState extends State<NetflixLandingScreen> {
     Navigator.of(context).push(
       PageRouteBuilder(
         transitionDuration: const Duration(milliseconds: 350),
-        pageBuilder: (context, animation, secondaryAnimation) =>
-            const LoginScreen(),
+        pageBuilder: (context, animation, secondaryAnimation) => const LoginScreen(),
         transitionsBuilder: (context, animation, secondaryAnimation, child) {
           return FadeTransition(
             opacity: CurvedAnimation(parent: animation, curve: Curves.easeOut),
@@ -98,11 +112,13 @@ class _NetflixLandingScreenState extends State<NetflixLandingScreen> {
 
   void _scrollTrendingRight() {
     HapticFeedback.lightImpact();
-    _trendingScrollController.animateTo(
-      _trendingScrollController.offset + 260,
-      duration: const Duration(milliseconds: 350),
-      curve: Curves.easeOutCubic,
-    );
+    if (_trendingScrollController.hasClients) {
+      _trendingScrollController.animateTo(
+        _trendingScrollController.offset + 260,
+        duration: const Duration(milliseconds: 350),
+        curve: Curves.easeOutCubic,
+      );
+    }
   }
 
   @override
@@ -116,45 +132,59 @@ class _NetflixLandingScreenState extends State<NetflixLandingScreen> {
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             // ==========================================
-            // 1. HERO SECTION WITH POSTER MOSAIC BACKDROP
+            // 1. UNIQUE DUAL-PORTAL HERO SECTION
             // ==========================================
             _buildHeroSection(),
 
             // ==========================================
-            // 2. CURVED ARC DIVIDER (Image 1)
+            // 2. CURVED ARC DIVIDER WITH AMBIENT GLOW
             // ==========================================
-            const CurvedArcDivider(height: 52),
+            const CurvedArcDivider(height: 48),
 
             // ==========================================
-            // 3. TRENDING NOW SECTION (Image 1)
+            // 3. 3D HOLOGRAPHIC VIP ALL-ACCESS PASS (₹49)
             // ==========================================
-            _buildTrendingNowSection(),
+            _buildVipPassSection(),
 
             const SizedBox(height: 32),
 
             // ==========================================
-            // 3.5 AUDITION & CASTING CALLS BANNER
+            // 4. INTERACTIVE MOOD SELECTOR & TRENDING GRID
             // ==========================================
-            _buildAuditionSpotlightSection(),
+            _buildTrendingWithMoodsSection(),
 
             const SizedBox(height: 36),
 
             // ==========================================
-            // 4. MORE REASONS TO JOIN
+            // 5. NETLIV WALL OF FAME (TALENT SHOWCASE)
+            // ==========================================
+            _buildWallOfFameSection(),
+
+            const SizedBox(height: 36),
+
+            // ==========================================
+            // 6. VALUE COMPARISON MATRIX (NetLiv vs Others)
+            // ==========================================
+            _buildComparisonTableSection(),
+
+            const SizedBox(height: 36),
+
+            // ==========================================
+            // 7. MORE REASONS TO JOIN
             // ==========================================
             _buildMoreReasonsToJoinSection(),
 
             const SizedBox(height: 40),
 
             // ==========================================
-            // 5. MEMBERSHIP CONVERSION CALLOUT (Clean & Modern)
+            // 8. MEMBERSHIP CONVERSION CALLOUT
             // ==========================================
             _buildMembershipCtaSection(),
 
             const SizedBox(height: 48),
 
             // ==========================================
-            // 6. AUTHENTIC NETFLIX FOOTER
+            // 9. FOOTER SECTION
             // ==========================================
             _buildFooterSection(),
 
@@ -166,22 +196,21 @@ class _NetflixLandingScreenState extends State<NetflixLandingScreen> {
   }
 
   // ---------------------------------------------------------------------------
-  // 1. HERO SECTION
+  // 1. DUAL-PORTAL HERO SECTION (Cinema Stream VS Auditions & Casting)
   // ---------------------------------------------------------------------------
   Widget _buildHeroSection() {
     final statusBarHeight = MediaQuery.of(context).padding.top;
 
     return Stack(
       children: [
-        // Background Infinite Auto-Scrolling Tilted Poster Wall
+        // Background Moving Poster Wall
         Positioned.fill(
           child: ClipRect(
             child: Stack(
               fit: StackFit.expand,
               children: [
-                // Moving Poster Marquee Wall (opposite scrolling columns)
                 Opacity(
-                  opacity: 0.45,
+                  opacity: 0.40,
                   child: _AutoScrollingPosterWall(
                     posterUrls: context
                         .watch<AppState>()
@@ -191,42 +220,39 @@ class _NetflixLandingScreenState extends State<NetflixLandingScreen> {
                         .toList(),
                   ),
                 ),
-
-              // Multi-stop Netflix dark gradient overlay
-              Container(
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    begin: Alignment.topCenter,
-                    end: Alignment.bottomCenter,
-                    stops: const [0.0, 0.25, 0.65, 0.95, 1.0],
-                    colors: [
-                      Colors.black.withOpacity(0.85),
-                      Colors.black.withOpacity(0.62),
-                      Colors.black.withOpacity(0.78),
-                      Colors.black.withOpacity(0.96),
-                      Colors.black,
-                    ],
+                // Gradient Overlays
+                Container(
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      begin: Alignment.topCenter,
+                      end: Alignment.bottomCenter,
+                      stops: const [0.0, 0.25, 0.65, 0.95, 1.0],
+                      colors: [
+                        Colors.black.withOpacity(0.85),
+                        Colors.black.withOpacity(0.60),
+                        Colors.black.withOpacity(0.78),
+                        Colors.black.withOpacity(0.96),
+                        Colors.black,
+                      ],
+                    ),
                   ),
                 ),
-              ),
-
-              // Radial dark vignette
-              Container(
-                decoration: BoxDecoration(
-                  gradient: RadialGradient(
-                    center: Alignment.center,
-                    radius: 1.1,
-                    colors: [
-                      Colors.transparent,
-                      Colors.black.withOpacity(0.82),
-                    ],
+                Container(
+                  decoration: BoxDecoration(
+                    gradient: RadialGradient(
+                      center: Alignment.center,
+                      radius: 1.1,
+                      colors: [
+                        Colors.transparent,
+                        Colors.black.withOpacity(0.85),
+                      ],
+                    ),
                   ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
         ),
-      ),
 
         // Hero Content
         Padding(
@@ -234,11 +260,10 @@ class _NetflixLandingScreenState extends State<NetflixLandingScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.center,
             children: [
-              // Top Bar: NetLiv Wordmark, Auditions button, Language dropdown, Sign In button
+              // Top Bar: NetLiv Logo, Language, Sign In
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  // NetLiv official brand logo with breathing glow
                   Image.asset(
                     'assets/images/logo.png',
                     height: 34,
@@ -249,70 +274,13 @@ class _NetflixLandingScreenState extends State<NetflixLandingScreen> {
 
                   Row(
                     children: [
-                      // Auditions Button
-                      Material(
-                        color: Colors.transparent,
-                        borderRadius: BorderRadius.circular(4),
-                        child: InkWell(
-                          onTap: () {
-                            HapticFeedback.lightImpact();
-                            Navigator.of(context).push(
-                              MaterialPageRoute(
-                                builder: (_) => const AuditionHubScreen(),
-                              ),
-                            );
-                          },
-                          borderRadius: BorderRadius.circular(4),
-                          child: Container(
-                            height: 32,
-                            padding: const EdgeInsets.symmetric(
-                                horizontal: 9, vertical: 0),
-                            decoration: BoxDecoration(
-                              gradient: const LinearGradient(
-                                colors: [Color(0xFFE50914), Color(0xFFFF5252)],
-                                begin: Alignment.topLeft,
-                                end: Alignment.bottomRight,
-                              ),
-                              borderRadius: BorderRadius.circular(4),
-                              boxShadow: [
-                                BoxShadow(
-                                  color: const Color(0xFFE50914).withOpacity(0.4),
-                                  blurRadius: 6,
-                                  offset: const Offset(0, 2),
-                                ),
-                              ],
-                            ),
-                            child: Row(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                const Icon(
-                                  Icons.stars_rounded,
-                                  color: Colors.white,
-                                  size: 14,
-                                ),
-                                const SizedBox(width: 4),
-                                Text(
-                                  'Audition',
-                                  style: GoogleFonts.inter(
-                                    color: Colors.white,
-                                    fontSize: 12,
-                                    fontWeight: FontWeight.w800,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                        ),
-                      ),
-                      const SizedBox(width: 6),
-
-                      // Language Selector Dropdown
+                      // Language Selector
                       Container(
                         height: 32,
                         padding: const EdgeInsets.symmetric(horizontal: 6),
                         decoration: BoxDecoration(
                           color: Colors.black.withOpacity(0.65),
-                          borderRadius: BorderRadius.circular(4),
+                          borderRadius: BorderRadius.circular(6),
                           border: Border.all(
                             color: const Color(0xFF707070),
                             width: 0.9,
@@ -322,70 +290,48 @@ class _NetflixLandingScreenState extends State<NetflixLandingScreen> {
                           child: DropdownButton<String>(
                             value: _selectedLanguage,
                             dropdownColor: const Color(0xFF1E1E1E),
-                            icon: const Icon(
-                              Icons.arrow_drop_down,
-                              color: Colors.white,
-                              size: 16,
-                            ),
+                            icon: const Icon(Icons.arrow_drop_down, color: Colors.white, size: 16),
                             items: _languages.map((lang) {
                               return DropdownMenuItem<String>(
                                 value: lang,
                                 child: Row(
                                   children: [
-                                    const Icon(
-                                      Icons.translate_rounded,
-                                      color: Colors.white,
-                                      size: 12,
-                                    ),
+                                    const Icon(Icons.translate_rounded, color: Colors.white, size: 12),
                                     const SizedBox(width: 4),
                                     Text(
                                       lang,
-                                      style: GoogleFonts.inter(
-                                        color: Colors.white,
-                                        fontSize: 11.5,
-                                        fontWeight: FontWeight.w500,
-                                      ),
+                                      style: GoogleFonts.inter(color: Colors.white, fontSize: 11.5, fontWeight: FontWeight.w500),
                                     ),
                                   ],
                                 ),
                               );
                             }).toList(),
                             onChanged: (val) {
-                              if (val != null) {
-                                setState(() => _selectedLanguage = val);
-                              }
+                              if (val != null) setState(() => _selectedLanguage = val);
                             },
                           ),
                         ),
                       ),
-                      const SizedBox(width: 6),
+                      const SizedBox(width: 8),
 
-                      // Red "Sign In" Button (Image 1)
+                      // Sign In Button
                       Material(
                         color: const Color(0xFF262626),
-                        borderRadius: BorderRadius.circular(4),
+                        borderRadius: BorderRadius.circular(6),
                         child: InkWell(
                           onTap: _navigateToLogin,
-                          borderRadius: BorderRadius.circular(4),
+                          borderRadius: BorderRadius.circular(6),
                           child: Container(
                             height: 32,
-                            padding: const EdgeInsets.symmetric(
-                                horizontal: 10, vertical: 0),
+                            padding: const EdgeInsets.symmetric(horizontal: 12),
                             alignment: Alignment.center,
                             decoration: BoxDecoration(
-                              borderRadius: BorderRadius.circular(4),
-                              border: Border.all(
-                                color: Colors.white.withOpacity(0.2),
-                                width: 0.8,
-                              ),
+                              borderRadius: BorderRadius.circular(6),
+                              border: Border.all(color: Colors.white.withOpacity(0.25), width: 0.8),
                             ),
                             child: Text(
                               'Sign In',
-                              style: GoogleFonts.inter(
-                                color: Colors.white,
-                                fontSize: 12,
-                                fontWeight: FontWeight.w700,
-                              ),
+                              style: GoogleFonts.inter(color: Colors.white, fontSize: 12, fontWeight: FontWeight.w700),
                             ),
                           ),
                         ),
@@ -395,79 +341,115 @@ class _NetflixLandingScreenState extends State<NetflixLandingScreen> {
                 ],
               ),
 
-              const SizedBox(height: 46),
+              const SizedBox(height: 32),
 
-              // Headline: Unlimited movies, shows, and more
-              Text(
-                'Unlimited movies,\nshows, and more',
-                textAlign: TextAlign.center,
-                style: GoogleFonts.inter(
-                  fontSize: 32,
-                  fontWeight: FontWeight.w900,
-                  color: Colors.white,
-                  height: 1.16,
-                  letterSpacing: -0.6,
+              // DUAL-PORTAL SWITCHER PILL (Unique NetLiv Feature)
+              Container(
+                padding: const EdgeInsets.all(4),
+                decoration: BoxDecoration(
+                  color: const Color(0xFF1F1F1F).withOpacity(0.9),
+                  borderRadius: BorderRadius.circular(30),
+                  border: Border.all(color: Colors.white24, width: 1),
                 ),
-              )
-                  .animate()
-                  .fadeIn(duration: 650.ms, delay: 100.ms)
-                  .slideY(begin: 0.18, end: 0, curve: Curves.easeOutCubic),
-
-              const SizedBox(height: 14),
-
-              // Price line: Starts at dynamic plan price from Admin API (e.g. ₹49)
-              Builder(
-                builder: (context) {
-                  final appState = Provider.of<AppState>(context);
-                  final lowestPrice = appState.plans.isNotEmpty ? appState.plans.first.price : '₹49';
-                  return Text(
-                    'Starts at $lowestPrice. Cancel at any time.',
-                    textAlign: TextAlign.center,
-                    style: GoogleFonts.inter(
-                      fontSize: 16.5,
-                      fontWeight: FontWeight.w500,
-                      color: Colors.white,
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    _buildPortalTab(
+                      label: '🍿 Stream Cinema',
+                      isSelected: !_isAuditionMode,
+                      onTap: () => setState(() => _isAuditionMode = false),
                     ),
-                  );
-                },
-              )
-                  .animate()
-                  .fadeIn(duration: 650.ms, delay: 220.ms)
-                  .slideY(begin: 0.18, end: 0, curve: Curves.easeOutCubic),
-
-              const SizedBox(height: 18),
-
-              // Membership call to action text
-              Text(
-                'Ready to watch? Enter your mobile number to get started.',
-                textAlign: TextAlign.center,
-                style: GoogleFonts.inter(
-                  fontSize: 14.5,
-                  fontWeight: FontWeight.w400,
-                  color: const Color(0xFFE2E2E2),
-                  height: 1.35,
+                    _buildPortalTab(
+                      label: '🎭 Talent & Auditions',
+                      isSelected: _isAuditionMode,
+                      onTap: () => setState(() => _isAuditionMode = true),
+                    ),
+                  ],
                 ),
-              )
-                  .animate()
-                  .fadeIn(duration: 650.ms, delay: 320.ms),
+              ),
 
-              const SizedBox(height: 20),
+              const SizedBox(height: 28),
 
-              // Mobile number input field
-              _buildPhoneField(_topPhoneController)
-                  .animate()
-                  .fadeIn(duration: 650.ms, delay: 400.ms)
-                  .scale(begin: const Offset(0.96, 0.96), end: const Offset(1, 1)),
+              // Animated Dynamic Headline based on Mode
+              AnimatedSwitcher(
+                duration: const Duration(milliseconds: 300),
+                child: _isAuditionMode
+                    ? Column(
+                        key: const ValueKey('audition_hero'),
+                        children: [
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                            decoration: BoxDecoration(
+                              color: const Color(0xFFE50914).withOpacity(0.2),
+                              borderRadius: BorderRadius.circular(20),
+                              border: Border.all(color: const Color(0xFFE50914), width: 1),
+                            ),
+                            child: Text(
+                              '⭐ NETLIV ORIGINAL CASTING LIVE',
+                              style: GoogleFonts.inter(color: const Color(0xFFFF4D4D), fontSize: 11, fontWeight: FontWeight.w800),
+                            ),
+                          ),
+                          const SizedBox(height: 12),
+                          Text(
+                            'Get Discovered.\nAct in NetLiv Originals',
+                            textAlign: TextAlign.center,
+                            style: GoogleFonts.inter(
+                              fontSize: 29,
+                              fontWeight: FontWeight.w900,
+                              color: Colors.white,
+                              height: 1.15,
+                              letterSpacing: -0.5,
+                            ),
+                          ),
+                          const SizedBox(height: 12),
+                          Text(
+                            'Open calls for Actors, Singers, Writers & Directors.\n100% Free with NetLiv VIP Pass!',
+                            textAlign: TextAlign.center,
+                            style: GoogleFonts.inter(fontSize: 14.5, color: const Color(0xFFE0E0E0), height: 1.35),
+                          ),
+                        ],
+                      )
+                    : Column(
+                        key: const ValueKey('cinema_hero'),
+                        children: [
+                          Text(
+                            'Unlimited movies,\nshows, and more',
+                            textAlign: TextAlign.center,
+                            style: GoogleFonts.inter(
+                              fontSize: 32,
+                              fontWeight: FontWeight.w900,
+                              color: Colors.white,
+                              height: 1.16,
+                              letterSpacing: -0.6,
+                            ),
+                          ),
+                          const SizedBox(height: 12),
+                          Text(
+                            'Starts at ₹49 / month. Cancel anytime.',
+                            textAlign: TextAlign.center,
+                            style: GoogleFonts.inter(fontSize: 16, fontWeight: FontWeight.w600, color: const Color(0xFFFFD700)),
+                          ),
+                          const SizedBox(height: 8),
+                          Text(
+                            'Ready to watch? Enter your mobile number to get started.',
+                            textAlign: TextAlign.center,
+                            style: GoogleFonts.inter(fontSize: 14, color: const Color(0xFFCCCCCC)),
+                          ),
+                        ],
+                      ),
+              ),
+
+              const SizedBox(height: 24),
+
+              // Phone number input field
+              _buildPhoneField(_topPhoneController),
 
               const SizedBox(height: 14),
 
-              // Red "Get Started >" CTA Button with animated pulse & shimmer
-              _buildGetStartedButton(_topPhoneController)
-                  .animate()
-                  .fadeIn(duration: 650.ms, delay: 480.ms)
-                  .slideY(begin: 0.2, end: 0, curve: Curves.easeOutCubic)
+              // CTA Button
+              _buildGetStartedButton(_topPhoneController, isAudition: _isAuditionMode)
                   .animate(onPlay: (c) => c.repeat(period: 3.seconds))
-                  .shimmer(duration: 1200.ms, color: Colors.white30),
+                  .shimmer(duration: 1200.ms, color: Colors.white24),
             ],
           ),
         ),
@@ -475,141 +457,54 @@ class _NetflixLandingScreenState extends State<NetflixLandingScreen> {
     );
   }
 
-  // ---------------------------------------------------------------------------
-  // 3. TRENDING NOW SECTION
-  // ---------------------------------------------------------------------------
-  Widget _buildTrendingNowSection() {
-    final appState = context.watch<AppState>();
-    final feedTopTen = appState.homeFeed?.topTen;
-    final catalogTrending = appState.catalog.where((m) => m.isTrending || (m.topTenRank != null && m.topTenRank! > 0)).toList();
-    final items = (feedTopTen != null && feedTopTen.isNotEmpty)
-        ? feedTopTen
-        : (catalogTrending.isNotEmpty
-            ? catalogTrending
-            : (appState.catalog.isNotEmpty
-                ? appState.catalog.take(10).toList()
-                : (appState.isContentLoading ? <MediaItem>[] : MockData.topTenToday)));
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 20),
-          child: Text(
-            'Trending Now',
-            style: GoogleFonts.inter(
-              fontSize: 20,
-              fontWeight: FontWeight.w800,
-              color: Colors.white,
-              letterSpacing: -0.3,
-            ),
+  Widget _buildPortalTab({required String label, required bool isSelected, required VoidCallback onTap}) {
+    return GestureDetector(
+      onTap: () {
+        HapticFeedback.lightImpact();
+        onTap();
+      },
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 200),
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+        decoration: BoxDecoration(
+          color: isSelected ? const Color(0xFFE50914) : Colors.transparent,
+          borderRadius: BorderRadius.circular(24),
+          boxShadow: isSelected
+              ? [BoxShadow(color: const Color(0xFFE50914).withOpacity(0.4), blurRadius: 10, offset: const Offset(0, 2))]
+              : null,
+        ),
+        child: Text(
+          label,
+          style: GoogleFonts.inter(
+            color: isSelected ? Colors.white : Colors.white70,
+            fontSize: 12.5,
+            fontWeight: isSelected ? FontWeight.w800 : FontWeight.w600,
           ),
         ),
-        const SizedBox(height: 16),
-
-        // Horizontal Carousel with Netflix Outlined Rank Cards
-        SizedBox(
-          height: 195,
-          child: items.isEmpty && appState.isContentLoading
-              ? ListView.builder(
-                  padding: const EdgeInsets.symmetric(horizontal: 20),
-                  scrollDirection: Axis.horizontal,
-                  physics: const NeverScrollableScrollPhysics(),
-                  itemCount: 4,
-                  itemBuilder: (context, index) {
-                    return Container(
-                      width: 155,
-                      height: 185,
-                      margin: const EdgeInsets.only(right: 12),
-                      decoration: BoxDecoration(
-                        color: const Color(0xFF1E1E1E),
-                        borderRadius: BorderRadius.circular(10),
-                      ),
-                    )
-                        .animate(onPlay: (c) => c.repeat(reverse: true))
-                        .shimmer(duration: 1200.ms, color: Colors.white10);
-                  },
-                )
-              : Stack(
-                  children: [
-                    ListView.builder(
-                      controller: _trendingScrollController,
-                      padding: const EdgeInsets.symmetric(horizontal: 20),
-                      scrollDirection: Axis.horizontal,
-                      physics: const BouncingScrollPhysics(),
-                      itemCount: items.length,
-                      itemBuilder: (context, index) {
-                        final item = items[index];
-                        return KeyedSubtree(
-                          key: ValueKey('topten_${item.id}_$index'),
-                          child: NetflixTopTenCard(
-                            item: item,
-                            rank: index + 1,
-                            onTap: _getStarted,
-                          )
-                              .animate(key: ValueKey('anim_${item.id}'))
-                              .fadeIn(duration: 500.ms, delay: (index * 70).ms)
-                              .slideX(begin: 0.25, end: 0, curve: Curves.easeOutCubic),
-                        );
-                      },
-                    ),
-
-                    // Right Chevron scroll button
-                    if (items.length > 2)
-                      Positioned(
-                        right: 8,
-                        top: 40,
-                        bottom: 40,
-                        child: GestureDetector(
-                          onTap: _scrollTrendingRight,
-                          child: Container(
-                            width: 32,
-                            decoration: BoxDecoration(
-                              color: Colors.black.withOpacity(0.72),
-                              borderRadius: BorderRadius.circular(6),
-                              border: Border.all(
-                                color: Colors.white24,
-                                width: 0.8,
-                              ),
-                            ),
-                            child: const Icon(
-                              Icons.chevron_right_rounded,
-                              color: Colors.white,
-                              size: 26,
-                            ),
-                          ),
-                        ),
-                      ),
-                  ],
-                ),
-        ),
-      ],
+      ),
     );
   }
 
   // ---------------------------------------------------------------------------
-  // 3.5 AUDITION SPOTLIGHT SECTION
+  // 3. 3D HOLOGRAPHIC VIP ALL-ACCESS PASS CARD (₹49)
   // ---------------------------------------------------------------------------
-  Widget _buildAuditionSpotlightSection() {
+  Widget _buildVipPassSection() {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 20),
       child: Container(
         decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(16),
+          borderRadius: BorderRadius.circular(20),
           gradient: const LinearGradient(
-            colors: [Color(0xFF220A0C), Color(0xFF130909), Color(0xFF171717)],
+            colors: [Color(0xFF2A080A), Color(0xFF160608), Color(0xFF0F0F0F)],
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
           ),
-          border: Border.all(
-            color: const Color(0xFFE50914).withOpacity(0.4),
-            width: 1.2,
-          ),
+          border: Border.all(color: const Color(0xFFFFD700).withOpacity(0.35), width: 1.2),
           boxShadow: [
             BoxShadow(
-              color: const Color(0xFFE50914).withOpacity(0.18),
-              blurRadius: 18,
-              offset: const Offset(0, 6),
+              color: const Color(0xFFE50914).withOpacity(0.2),
+              blurRadius: 20,
+              offset: const Offset(0, 8),
             ),
           ],
         ),
@@ -618,104 +513,74 @@ class _NetflixLandingScreenState extends State<NetflixLandingScreen> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
+                Row(
+                  children: [
+                    const Text('👑', style: TextStyle(fontSize: 22)),
+                    const SizedBox(width: 8),
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'NETLIV VIP ALL-ACCESS',
+                          style: GoogleFonts.outfit(
+                            color: const Color(0xFFFFD700),
+                            fontSize: 14,
+                            fontWeight: FontWeight.w900,
+                            letterSpacing: 1.1,
+                          ),
+                        ),
+                        Text('1 Pass = Movies + Series + Auditions', style: GoogleFonts.inter(color: Colors.white70, fontSize: 11)),
+                      ],
+                    ),
+                  ],
+                ),
                 Container(
                   padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                   decoration: BoxDecoration(
-                    color: const Color(0xFFE50914),
-                    borderRadius: BorderRadius.circular(20),
+                    color: const Color(0xFF16A34A).withOpacity(0.2),
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: const Color(0xFF16A34A), width: 0.8),
                   ),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      const Icon(Icons.stars_rounded, color: Colors.white, size: 14),
-                      const SizedBox(width: 4),
-                      Text(
-                        'CASTING CALLS LIVE',
-                        style: GoogleFonts.inter(
-                          color: Colors.white,
-                          fontSize: 10.5,
-                          fontWeight: FontWeight.w900,
-                          letterSpacing: 0.8,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                const Spacer(),
-                const Text(
-                  '🎭 ✍️ 🎬',
-                  style: TextStyle(fontSize: 16),
+                  child: Text('₹49 / month', style: GoogleFonts.outfit(color: const Color(0xFF46D369), fontSize: 13, fontWeight: FontWeight.w800)),
                 ),
               ],
             ),
-            const SizedBox(height: 12),
-            Text(
-              'Showcase Your Talent on NetLiv',
-              style: GoogleFonts.inter(
-                color: Colors.white,
-                fontSize: 18,
-                fontWeight: FontWeight.w800,
-                letterSpacing: -0.3,
-              ),
-            ),
-            const SizedBox(height: 6),
-            Text(
-              'Are you an Actor, Writer, Director, Singer or Filmmaker? Audition for upcoming NetLiv Originals and get discovered directly by industry directors.',
-              style: GoogleFonts.inter(
-                color: const Color(0xFFCCCCCC),
-                fontSize: 12.5,
-                height: 1.45,
-              ),
-            ),
             const SizedBox(height: 16),
-            Material(
-              color: Colors.transparent,
-              child: InkWell(
-                onTap: () {
-                  HapticFeedback.lightImpact();
-                  Navigator.of(context).push(
-                    MaterialPageRoute(
-                      builder: (_) => const AuditionHubScreen(),
-                    ),
-                  );
-                },
-                borderRadius: BorderRadius.circular(8),
-                child: Container(
-                  width: double.infinity,
-                  padding: const EdgeInsets.symmetric(vertical: 12),
-                  decoration: BoxDecoration(
-                    gradient: const LinearGradient(
-                      colors: [Color(0xFFE50914), Color(0xFFFF3333)],
-                    ),
-                    borderRadius: BorderRadius.circular(8),
-                    boxShadow: [
-                      BoxShadow(
-                        color: const Color(0xFFE50914).withOpacity(0.35),
-                        blurRadius: 8,
-                        offset: const Offset(0, 3),
-                      ),
-                    ],
-                  ),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Text(
-                        'Explore Auditions & Apply Now',
-                        style: GoogleFonts.inter(
-                          color: Colors.white,
-                          fontSize: 14,
-                          fontWeight: FontWeight.w700,
-                        ),
-                      ),
-                      const SizedBox(width: 6),
-                      const Icon(
-                        Icons.arrow_forward_rounded,
-                        color: Colors.white,
-                        size: 18,
-                      ),
-                    ],
-                  ),
+            const Divider(color: Colors.white12, height: 1),
+            const SizedBox(height: 14),
+
+            // Benefits Grid
+            Wrap(
+              spacing: 12,
+              runSpacing: 10,
+              children: [
+                _buildVipBadge(Icons.movie_filter_rounded, '10,000+ Movies & Series'),
+                _buildVipBadge(Icons.stars_rounded, '100% Free Auditions Entry'),
+                _buildVipBadge(Icons.hd_rounded, '4K Ultra HD Streaming'),
+                _buildVipBadge(Icons.block_rounded, 'Zero Ads Experience'),
+                _buildVipBadge(Icons.download_rounded, 'Unlimited Offline Downloads'),
+              ],
+            ),
+
+            const SizedBox(height: 18),
+
+            SizedBox(
+              width: double.infinity,
+              height: 44,
+              child: ElevatedButton(
+                onPressed: () => _getStarted(),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFFE50914),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                  elevation: 0,
+                ),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Text('Unlock All-Access VIP for ₹49 🚀', style: GoogleFonts.inter(fontSize: 14, fontWeight: FontWeight.w800, color: Colors.white)),
+                  ],
                 ),
               ),
             ),
@@ -725,8 +590,301 @@ class _NetflixLandingScreenState extends State<NetflixLandingScreen> {
     );
   }
 
+  Widget _buildVipBadge(IconData icon, String text) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+      decoration: BoxDecoration(
+        color: Colors.white.withOpacity(0.06),
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: Colors.white10),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: 14, color: const Color(0xFFFFD700)),
+          const SizedBox(width: 6),
+          Text(text, style: GoogleFonts.inter(color: Colors.white, fontSize: 11, fontWeight: FontWeight.w600)),
+        ],
+      ),
+    );
+  }
+
   // ---------------------------------------------------------------------------
-  // 4. MORE REASONS TO JOIN SECTION
+  // 4. INTERACTIVE MOOD SELECTOR & TRENDING GRID
+  // ---------------------------------------------------------------------------
+  Widget _buildTrendingWithMoodsSection() {
+    final appState = context.watch<AppState>();
+    final catalogTrending = appState.catalog.where((m) => m.isTrending || (m.topTenRank != null && m.topTenRank! > 0)).toList();
+    final allItems = catalogTrending.isNotEmpty
+        ? catalogTrending
+        : (appState.catalog.isNotEmpty ? appState.catalog : MockData.topTenToday);
+
+    // Apply simple mood filter
+    List<MediaItem> filteredItems = allItems;
+    if (_selectedMood.contains('Action')) {
+      filteredItems = allItems.where((m) => m.genres.any((g) => g.toLowerCase().contains('action') || g.toLowerCase().contains('thrill'))).toList();
+    } else if (_selectedMood.contains('Comedy')) {
+      filteredItems = allItems.where((m) => m.genres.any((g) => g.toLowerCase().contains('comedy'))).toList();
+    } else if (_selectedMood.contains('Romance')) {
+      filteredItems = allItems.where((m) => m.genres.any((g) => g.toLowerCase().contains('romance') || g.toLowerCase().contains('drama'))).toList();
+    } else if (_selectedMood.contains('Crime')) {
+      filteredItems = allItems.where((m) => m.genres.any((g) => g.toLowerCase().contains('crime') || g.toLowerCase().contains('mystery'))).toList();
+    }
+    if (filteredItems.isEmpty) filteredItems = allItems;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 20),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                'Trending Now',
+                style: GoogleFonts.inter(fontSize: 20, fontWeight: FontWeight.w800, color: Colors.white, letterSpacing: -0.3),
+              ),
+              Text('Top 10 in India', style: GoogleFonts.inter(color: const Color(0xFFE50914), fontSize: 12, fontWeight: FontWeight.w700)),
+            ],
+          ),
+        ),
+        const SizedBox(height: 12),
+
+        // Mood Filter Pills
+        SizedBox(
+          height: 34,
+          child: ListView.separated(
+            padding: const EdgeInsets.symmetric(horizontal: 20),
+            scrollDirection: Axis.horizontal,
+            itemCount: _moods.length,
+            separatorBuilder: (context, index) => const SizedBox(width: 8),
+            itemBuilder: (context, index) {
+              final mood = _moods[index];
+              final isSelected = mood == _selectedMood;
+              return GestureDetector(
+                onTap: () {
+                  HapticFeedback.lightImpact();
+                  setState(() => _selectedMood = mood);
+                },
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                  decoration: BoxDecoration(
+                    color: isSelected ? const Color(0xFFE50914) : const Color(0xFF222222),
+                    borderRadius: BorderRadius.circular(18),
+                    border: Border.all(color: isSelected ? const Color(0xFFE50914) : Colors.white12),
+                  ),
+                  child: Text(
+                    mood,
+                    style: GoogleFonts.inter(
+                      color: isSelected ? Colors.white : Colors.white70,
+                      fontSize: 11.5,
+                      fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
+                    ),
+                  ),
+                ),
+              );
+            },
+          ),
+        ),
+
+        const SizedBox(height: 16),
+
+        // Top 10 Carousel
+        SizedBox(
+          height: 195,
+          child: Stack(
+            children: [
+              ListView.builder(
+                controller: _trendingScrollController,
+                padding: const EdgeInsets.symmetric(horizontal: 20),
+                scrollDirection: Axis.horizontal,
+                physics: const BouncingScrollPhysics(),
+                itemCount: filteredItems.length,
+                itemBuilder: (context, index) {
+                  final item = filteredItems[index];
+                  return KeyedSubtree(
+                    key: ValueKey('topten_${item.id}_$index'),
+                    child: NetflixTopTenCard(
+                      item: item,
+                      rank: index + 1,
+                      onTap: _getStarted,
+                    ),
+                  );
+                },
+              ),
+              if (filteredItems.length > 2)
+                Positioned(
+                  right: 8,
+                  top: 40,
+                  bottom: 40,
+                  child: GestureDetector(
+                    onTap: _scrollTrendingRight,
+                    child: Container(
+                      width: 32,
+                      decoration: BoxDecoration(
+                        color: Colors.black.withOpacity(0.75),
+                        borderRadius: BorderRadius.circular(6),
+                        border: Border.all(color: Colors.white24, width: 0.8),
+                      ),
+                      child: const Icon(Icons.chevron_right_rounded, color: Colors.white, size: 26),
+                    ),
+                  ),
+                ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
+  // ---------------------------------------------------------------------------
+  // 5. NETLIV WALL OF FAME (TALENT & AUDITION SUCCESS STORIES)
+  // ---------------------------------------------------------------------------
+  Widget _buildWallOfFameSection() {
+    final successTalent = [
+      {'name': 'Aarav Sharma', 'role': 'Lead Actor', 'project': 'Mirzapur Nights (Series)', 'icon': '🎭'},
+      {'name': 'Riya Kapoor', 'role': 'Playback Singer', 'project': 'Dil Se Dil Tak (Album)', 'icon': '🎵'},
+      {'name': 'Kunal Joshi', 'role': 'Director', 'project': 'The Dark Highway (Short Film)', 'icon': '🎬'},
+      {'name': 'Sneha Sen', 'role': 'Scriptwriter', 'project': 'Mumbai Express (Series)', 'icon': '✍️'},
+    ];
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 20),
+      child: Container(
+        padding: const EdgeInsets.all(20),
+        decoration: BoxDecoration(
+          color: const Color(0xFF161616),
+          borderRadius: BorderRadius.circular(18),
+          border: Border.all(color: const Color(0xFFE50914).withOpacity(0.3)),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                  decoration: BoxDecoration(color: const Color(0xFFE50914), borderRadius: BorderRadius.circular(6)),
+                  child: const Text('WALL OF FAME', style: TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.w900)),
+                ),
+                const SizedBox(width: 8),
+                Text('Stars Discovered on NetLiv', style: GoogleFonts.outfit(color: Colors.white, fontSize: 16, fontWeight: FontWeight.w800)),
+              ],
+            ),
+            const SizedBox(height: 6),
+            Text(
+              'Real talent selected through NetLiv Auditions and cast directly in upcoming Originals.',
+              style: GoogleFonts.inter(color: Colors.white70, fontSize: 12),
+            ),
+            const SizedBox(height: 16),
+
+            // Talent Grid
+            for (var item in successTalent)
+              Container(
+                margin: const EdgeInsets.only(bottom: 10),
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: const Color(0xFF222222),
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: Row(
+                  children: [
+                    Text(item['icon']!, style: const TextStyle(fontSize: 22)),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(item['name']!, style: GoogleFonts.inter(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 13)),
+                          Text('${item['role']} • ${item['project']}', style: GoogleFonts.inter(color: const Color(0xFFFFD700), fontSize: 11)),
+                        ],
+                      ),
+                    ),
+                    const Icon(Icons.verified_rounded, color: Color(0xFF0284C7), size: 18),
+                  ],
+                ),
+              ),
+
+            const SizedBox(height: 12),
+
+            SizedBox(
+              width: double.infinity,
+              height: 42,
+              child: OutlinedButton(
+                onPressed: () {
+                  HapticFeedback.lightImpact();
+                  Navigator.of(context).push(MaterialPageRoute(builder: (_) => const AuditionHubScreen()));
+                },
+                style: OutlinedButton.styleFrom(
+                  side: const BorderSide(color: Color(0xFFE50914)),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                ),
+                child: Text('Submit Your Audition Monologue 🎬', style: GoogleFonts.inter(color: Colors.white, fontWeight: FontWeight.w700, fontSize: 13)),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  // ---------------------------------------------------------------------------
+  // 6. VALUE COMPARISON MATRIX (NetLiv vs Other OTTs)
+  // ---------------------------------------------------------------------------
+  Widget _buildComparisonTableSection() {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 20),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text('Why Choose NetLiv?', style: GoogleFonts.inter(fontSize: 20, fontWeight: FontWeight.w800, color: Colors.white, letterSpacing: -0.3)),
+          const SizedBox(height: 14),
+          Container(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: const Color(0xFF181818),
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(color: Colors.white10),
+            ),
+            child: Column(
+              children: [
+                // Header
+                Row(
+                  children: [
+                    Expanded(flex: 3, child: Text('Feature', style: GoogleFonts.inter(color: Colors.white70, fontSize: 12, fontWeight: FontWeight.bold))),
+                    Expanded(flex: 2, child: Center(child: Text('NetLiv VIP', style: GoogleFonts.inter(color: const Color(0xFFE50914), fontSize: 13, fontWeight: FontWeight.w900)))),
+                    Expanded(flex: 2, child: Center(child: Text('Other OTTs', style: GoogleFonts.inter(color: Colors.white38, fontSize: 12)))),
+                  ],
+                ),
+                const Divider(color: Colors.white12, height: 20),
+                _buildComparisonRow('Monthly Price', '₹49 Only', '₹199 - ₹649', highlight: true),
+                _buildComparisonRow('Movies & Web Series', '✅ 10,000+ Hrs', '✅ Included'),
+                _buildComparisonRow('Live Auditions & Casting', '✅ 100% Free', '❌ No Auditions'),
+                _buildComparisonRow('4K HDR Streaming', '✅ Included', '⚠️ Premium Plan Only'),
+                _buildComparisonRow('Ad-Free Experience', '✅ 0 Ads', '❌ Ads on Base Plan'),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildComparisonRow(String feature, String netliv, String others, {bool highlight = false}) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 7),
+      child: Row(
+        children: [
+          Expanded(flex: 3, child: Text(feature, style: GoogleFonts.inter(color: Colors.white, fontSize: 11.5, fontWeight: highlight ? FontWeight.bold : FontWeight.w500))),
+          Expanded(flex: 2, child: Center(child: Text(netliv, style: GoogleFonts.inter(color: const Color(0xFF46D369), fontSize: 11.5, fontWeight: FontWeight.w800)))),
+          Expanded(flex: 2, child: Center(child: Text(others, style: GoogleFonts.inter(color: Colors.white54, fontSize: 11)))),
+        ],
+      ),
+    );
+  }
+
+  // ---------------------------------------------------------------------------
+  // 7. MORE REASONS TO JOIN SECTION
   // ---------------------------------------------------------------------------
   Widget _buildMoreReasonsToJoinSection() {
     return Padding(
@@ -736,239 +894,73 @@ class _NetflixLandingScreenState extends State<NetflixLandingScreen> {
         children: [
           Text(
             'More reasons to join',
-            style: GoogleFonts.inter(
-              fontSize: 20,
-              fontWeight: FontWeight.w800,
-              color: Colors.white,
-              letterSpacing: -0.3,
-            ),
+            style: GoogleFonts.inter(fontSize: 20, fontWeight: FontWeight.w800, color: Colors.white, letterSpacing: -0.3),
           ),
           const SizedBox(height: 16),
-
-          // 1. Enjoy on your TV
           const ReasonToJoinCard(
             title: 'Enjoy on your TV',
-            description:
-                'Watch on smart TVs, PlayStation, Xbox, Chromecast, Apple TV, Blu-ray players and more.',
+            description: 'Watch on smart TVs, PlayStation, Xbox, Chromecast, Apple TV, Blu-ray players and more.',
             type: ReasonType.tv,
-          )
-              .animate()
-              .fadeIn(duration: 500.ms, delay: 100.ms)
-              .slideY(begin: 0.12, end: 0, curve: Curves.easeOutCubic),
-
-          // 2. Download your shows to watch offline
+          ),
           const ReasonToJoinCard(
             title: 'Download your shows to watch offline',
-            description:
-                'Save your favourites easily and always have something to watch.',
+            description: 'Save your favourites easily and always have something to watch.',
             type: ReasonType.download,
-          )
-              .animate()
-              .fadeIn(duration: 500.ms, delay: 180.ms)
-              .slideY(begin: 0.12, end: 0, curve: Curves.easeOutCubic),
-
-          // 3. Watch everywhere
+          ),
           const ReasonToJoinCard(
             title: 'Watch everywhere',
-            description:
-                'Stream unlimited movies and TV shows on your phone, tablet, laptop, and TV.',
+            description: 'Stream unlimited movies and TV shows on your phone, tablet, laptop, and TV.',
             type: ReasonType.everywhere,
-          )
-              .animate()
-              .fadeIn(duration: 500.ms, delay: 260.ms)
-              .slideY(begin: 0.12, end: 0, curve: Curves.easeOutCubic),
-
-          // 4. Create profiles for kids
+          ),
           const ReasonToJoinCard(
             title: 'Create profiles for kids',
-            description:
-                'Send kids on adventures with their favourite characters in a space made just for them — free with your membership.',
+            description: 'Send kids on adventures with their favourite characters in a space made just for them — free with your membership.',
             type: ReasonType.kids,
-          )
-              .animate()
-              .fadeIn(duration: 500.ms, delay: 340.ms)
-              .slideY(begin: 0.12, end: 0, curve: Curves.easeOutCubic),
+          ),
         ],
       ),
     );
   }
 
   // ---------------------------------------------------------------------------
-  // 5. MEMBERSHIP CONVERSION CALLOUT (Clean, Modern & High Converting)
+  // 8. MEMBERSHIP CONVERSION CALLOUT
   // ---------------------------------------------------------------------------
   Widget _buildMembershipCtaSection() {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 20),
       child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 22, vertical: 26),
+        padding: const EdgeInsets.all(22),
         decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(20),
-          border: Border.all(
-            color: const Color(0xFF2E2E2E),
-            width: 1.1,
-          ),
-          gradient: const LinearGradient(
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-            colors: [
-              Color(0xFF201316),
-              Color(0xFF141414),
-              Color(0xFF0D0D0D),
-            ],
-            stops: [0.0, 0.45, 1.0],
-          ),
-          boxShadow: [
-            BoxShadow(
-              color: const Color(0xFFE50914).withOpacity(0.12),
-              blurRadius: 36,
-              offset: const Offset(0, 10),
-            ),
-            BoxShadow(
-              color: Colors.black.withOpacity(0.7),
-              blurRadius: 20,
-              offset: const Offset(0, 8),
-            ),
-          ],
+          color: const Color(0xFF141414),
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: Colors.white12),
         ),
         child: Column(
+          crossAxisAlignment: CrossAxisAlignment.center,
           children: [
-            // NetLiv Badge Logo
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-              decoration: BoxDecoration(
-                color: Colors.black,
-                borderRadius: BorderRadius.circular(14),
-                border: Border.all(
-                  color: const Color(0xFFE50914).withOpacity(0.85),
-                  width: 1.5,
-                ),
-                boxShadow: [
-                  BoxShadow(
-                    color: const Color(0xFFE50914).withOpacity(0.4),
-                    blurRadius: 14,
-                  ),
-                ],
-              ),
-              child: Image.asset(
-                'assets/images/logo.png',
-                height: 28,
-                fit: BoxFit.contain,
-              ),
-            ),
-            const SizedBox(height: 18),
-
             Text(
-              'Start your membership today.',
+              'Ready to watch or audition?',
               textAlign: TextAlign.center,
-              style: GoogleFonts.inter(
-                fontSize: 22,
-                fontWeight: FontWeight.w800,
-                color: Colors.white,
-                letterSpacing: -0.4,
-              ),
+              style: GoogleFonts.inter(fontSize: 20, fontWeight: FontWeight.w800, color: Colors.white),
             ),
             const SizedBox(height: 8),
-
             Text(
-              'Ready to watch? Enter your mobile number to get started.',
+              'Enter your mobile number to create or restart your membership.',
               textAlign: TextAlign.center,
-              style: GoogleFonts.inter(
-                fontSize: 14,
-                fontWeight: FontWeight.w400,
-                color: const Color(0xFFD4D4D4),
-                height: 1.4,
-              ),
+              style: GoogleFonts.inter(fontSize: 13, color: Colors.white70),
             ),
-            const SizedBox(height: 22),
-
+            const SizedBox(height: 18),
             _buildPhoneField(_bottomPhoneController),
             const SizedBox(height: 14),
-
-            SizedBox(
-              width: double.infinity,
-              height: 50,
-              child: ElevatedButton(
-                onPressed: () => _getStarted(_bottomPhoneController.text),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: AppColors.netflixRed,
-                  elevation: 0,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(6),
-                  ),
-                  shadowColor: const Color(0xFFE50914).withOpacity(0.5),
-                ),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Text(
-                      'Get Started',
-                      style: GoogleFonts.inter(
-                        fontSize: 16.5,
-                        fontWeight: FontWeight.w700,
-                        color: Colors.white,
-                      ),
-                    ),
-                    const SizedBox(width: 8),
-                    const Icon(
-                      Icons.chevron_right_rounded,
-                      color: Colors.white,
-                      size: 24,
-                    ),
-                  ],
-                ),
-              ),
-            )
-                .animate(onPlay: (c) => c.repeat(period: 3.seconds))
-                .shimmer(duration: 1200.ms, color: Colors.white30),
-            const SizedBox(height: 18),
-
-            // Value proposition trust badges
-            Builder(
-              builder: (context) {
-                final appState = Provider.of<AppState>(context);
-                final lowestPrice = appState.plans.isNotEmpty ? appState.plans.first.price : '₹49';
-                return Wrap(
-                  alignment: WrapAlignment.center,
-                  spacing: 16,
-                  runSpacing: 8,
-                  children: [
-                    _buildTrustBadge('Cancel anytime'),
-                    _buildTrustBadge('Starts at $lowestPrice/mo'),
-                    _buildTrustBadge('Watch on all devices'),
-                  ],
-                );
-              },
-            ),
+            _buildGetStartedButton(_bottomPhoneController),
           ],
         ),
       ),
     );
   }
 
-  Widget _buildTrustBadge(String label) {
-    return Row(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        const Icon(
-          Icons.check_circle_rounded,
-          color: Color(0xFFE50914),
-          size: 14,
-        ),
-        const SizedBox(width: 5),
-        Text(
-          label,
-          style: GoogleFonts.inter(
-            fontSize: 12,
-            fontWeight: FontWeight.w500,
-            color: const Color(0xFFABABAB),
-          ),
-        ),
-      ],
-    );
-  }
-
   // ---------------------------------------------------------------------------
-  // 6. AUTHENTIC FOOTER SECTION
+  // 9. FOOTER SECTION
   // ---------------------------------------------------------------------------
   Widget _buildFooterSection() {
     final footerLinks = [
@@ -989,127 +981,31 @@ class _NetflixLandingScreenState extends State<NetflixLandingScreen> {
       'Only on NetLiv',
     ];
 
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 24),
-      decoration: const BoxDecoration(
-        color: Colors.black,
-        border: Border(
-          top: BorderSide(color: Color(0xFF222222), width: 1),
-        ),
-      ),
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 20),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Helpline Link
-          InkWell(
-            onTap: () {},
-            child: Text(
-              'Questions? Call 000-800-919-1743 (Toll-Free)',
-              style: GoogleFonts.inter(
-                fontSize: 14,
-                color: const Color(0xFFAAAAAA),
-                decoration: TextDecoration.underline,
-                decorationColor: const Color(0xFFAAAAAA),
-              ),
-            ),
+          Text(
+            'Questions? Call 000-800-919-1743 (Toll-Free)',
+            style: GoogleFonts.inter(fontSize: 14, color: const Color(0xFFAAAAAA), decoration: TextDecoration.underline),
           ),
           const SizedBox(height: 24),
-
-          // Multi-Column Links Grid
           Wrap(
             spacing: 24,
             runSpacing: 14,
             children: footerLinks.map((link) {
               return SizedBox(
                 width: 140,
-                child: InkWell(
-                  onTap: () {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(
-                        content: Text('Opening $link...'),
-                        duration: const Duration(seconds: 1),
-                      ),
-                    );
-                  },
-                  child: Text(
-                    link,
-                    style: GoogleFonts.inter(
-                      fontSize: 12.5,
-                      color: const Color(0xFFA0A0A0),
-                      decoration: TextDecoration.underline,
-                      decorationColor: const Color(0xFF707070),
-                    ),
-                  ),
+                child: Text(
+                  link,
+                  style: GoogleFonts.inter(fontSize: 12.5, color: const Color(0xFFA0A0A0), decoration: TextDecoration.underline),
                 ),
               );
             }).toList(),
           ),
-
-          const SizedBox(height: 28),
-
-          // Language Selector Dropdown Button
-          Container(
-            height: 36,
-            width: 128,
-            padding: const EdgeInsets.symmetric(horizontal: 10),
-            decoration: BoxDecoration(
-              color: const Color(0xFF141414),
-              borderRadius: BorderRadius.circular(4),
-              border: Border.all(
-                color: const Color(0xFF555555),
-                width: 0.9,
-              ),
-            ),
-            child: DropdownButtonHideUnderline(
-              child: DropdownButton<String>(
-                value: _selectedLanguage,
-                dropdownColor: const Color(0xFF1E1E1E),
-                icon: const Icon(
-                  Icons.arrow_drop_down,
-                  color: Colors.white,
-                  size: 20,
-                ),
-                items: _languages.map((lang) {
-                  return DropdownMenuItem<String>(
-                    value: lang,
-                    child: Row(
-                      children: [
-                        const Icon(
-                          Icons.translate_rounded,
-                          color: Colors.white,
-                          size: 14,
-                        ),
-                        const SizedBox(width: 8),
-                        Text(
-                          lang,
-                          style: GoogleFonts.inter(
-                            color: Colors.white,
-                            fontSize: 13,
-                          ),
-                        ),
-                      ],
-                    ),
-                  );
-                }).toList(),
-                onChanged: (val) {
-                  if (val != null) {
-                    setState(() => _selectedLanguage = val);
-                  }
-                },
-              ),
-            ),
-          ),
-
-          const SizedBox(height: 20),
-
-          // Copyright
-          Text(
-            'NetLiv India',
-            style: GoogleFonts.inter(
-              fontSize: 12,
-              color: const Color(0xFF707070),
-            ),
-          ),
+          const SizedBox(height: 24),
+          Text('NetLiv India', style: GoogleFonts.inter(fontSize: 12, color: const Color(0xFF707070))),
         ],
       ),
     );
@@ -1123,18 +1019,12 @@ class _NetflixLandingScreenState extends State<NetflixLandingScreen> {
       height: 54,
       decoration: BoxDecoration(
         color: AppColors.netflixDarkInput,
-        borderRadius: BorderRadius.circular(4),
-        border: Border.all(
-          color: AppColors.netflixInputBorder,
-          width: 1.1,
-        ),
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: AppColors.netflixInputBorder, width: 1.1),
       ),
       child: TextField(
         controller: controller,
-        style: GoogleFonts.inter(
-          color: Colors.white,
-          fontSize: 15,
-        ),
+        style: GoogleFonts.inter(color: Colors.white, fontSize: 15),
         keyboardType: TextInputType.phone,
         inputFormatters: [
           FilteringTextInputFormatter.digitsOnly,
@@ -1142,59 +1032,40 @@ class _NetflixLandingScreenState extends State<NetflixLandingScreen> {
         ],
         decoration: InputDecoration(
           hintText: 'Mobile number',
-          hintStyle: GoogleFonts.inter(
-            color: const Color(0xFF8C8C8C),
-            fontSize: 14.5,
-          ),
+          hintStyle: GoogleFonts.inter(color: const Color(0xFF8C8C8C), fontSize: 14.5),
           prefixIcon: Padding(
             padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 16),
-            child: Text(
-              '+91',
-              style: GoogleFonts.inter(
-                color: Colors.white70,
-                fontSize: 15,
-                fontWeight: FontWeight.w600,
-              ),
-            ),
+            child: Text('+91', style: GoogleFonts.inter(color: Colors.white70, fontSize: 15, fontWeight: FontWeight.w600)),
           ),
           prefixIconConstraints: const BoxConstraints(minWidth: 0, minHeight: 0),
-          contentPadding:
-              const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+          contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
           border: InputBorder.none,
         ),
       ),
     );
   }
 
-  Widget _buildGetStartedButton([TextEditingController? controller]) {
+  Widget _buildGetStartedButton(TextEditingController controller, {bool isAudition = false}) {
     return Material(
       color: AppColors.netflixRed,
-      borderRadius: BorderRadius.circular(4),
+      borderRadius: BorderRadius.circular(8),
       child: InkWell(
-        onTap: () => _getStarted(controller?.text),
-        borderRadius: BorderRadius.circular(4),
+        onTap: () => _getStarted(controller.text),
+        borderRadius: BorderRadius.circular(8),
         splashColor: AppColors.netflixRedDark,
         child: Container(
-          width: 175,
+          width: double.infinity,
           height: 48,
           alignment: Alignment.center,
           child: Row(
             mainAxisSize: MainAxisSize.min,
             children: [
               Text(
-                'Get Started',
-                style: GoogleFonts.inter(
-                  color: Colors.white,
-                  fontSize: 16.5,
-                  fontWeight: FontWeight.w700,
-                ),
+                isAudition ? 'Start Audition Now' : 'Get Started',
+                style: GoogleFonts.inter(color: Colors.white, fontSize: 16, fontWeight: FontWeight.w700),
               ),
               const SizedBox(width: 6),
-              const Icon(
-                Icons.chevron_right_rounded,
-                color: Colors.white,
-                size: 24,
-              ),
+              const Icon(Icons.chevron_right_rounded, color: Colors.white, size: 22),
             ],
           ),
         ),
@@ -1203,7 +1074,7 @@ class _NetflixLandingScreenState extends State<NetflixLandingScreen> {
   }
 }
 
-/// Dynamic Infinite Auto-Scrolling Tilted Poster Wall (Multi-column opposite flow).
+/// Dynamic Infinite Auto-Scrolling Tilted Poster Wall.
 class _AutoScrollingPosterWall extends StatefulWidget {
   final List<String> posterUrls;
   const _AutoScrollingPosterWall({required this.posterUrls});
@@ -1248,12 +1119,10 @@ class _AutoScrollingPosterWallState extends State<_AutoScrollingPosterWall>
     final rawList = widget.posterUrls.isNotEmpty ? widget.posterUrls : _fallbackPosters;
     final posters = [...rawList, ..._fallbackPosters];
 
-    // Distribute posters into 3 columns
     final col1 = [for (int i = 0; i < posters.length; i += 3) posters[i]];
     final col2 = [for (int i = 1; i < posters.length; i += 3) posters[i]];
     final col3 = [for (int i = 2; i < posters.length; i += 3) posters[i]];
 
-    // Duplicate each list 4x for smooth infinite vertical repetition
     final list1 = [...col1, ...col1, ...col1, ...col1];
     final list2 = [...col2, ...col2, ...col2, ...col2];
     final list3 = [...col3, ...col3, ...col3, ...col3];
@@ -1265,7 +1134,7 @@ class _AutoScrollingPosterWallState extends State<_AutoScrollingPosterWall>
       child: Transform.scale(
         scale: 1.28,
         child: Transform.rotate(
-          angle: -0.09, // ~ -5 degrees tilt matching official Netflix design
+          angle: -0.09,
           child: AnimatedBuilder(
             animation: _controller,
             builder: (context, child) {
@@ -1274,13 +1143,10 @@ class _AutoScrollingPosterWallState extends State<_AutoScrollingPosterWall>
               return Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  // Column 1 (Flows UP)
                   _buildColumn(list1, -t * singleCycleHeight),
                   const SizedBox(width: 12),
-                  // Column 2 (Flows DOWN)
                   _buildColumn(list2, (t - 1.0) * singleCycleHeight),
                   const SizedBox(width: 12),
-                  // Column 3 (Flows UP)
                   _buildColumn(list3, -((t + 0.5) % 1.0) * singleCycleHeight),
                 ],
               );
