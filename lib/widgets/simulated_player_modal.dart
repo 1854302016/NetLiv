@@ -66,8 +66,6 @@ class _SimulatedPlayerModalState extends State<SimulatedPlayerModal> {
   Timer? _progressTimer;
   Timer? _hideControlsTimer;
 
-  static const double _introStart = 20.0;
-  static const double _introEnd = 65.0;
   static const double _upNextWindow = 20.0;
   bool _upNextDismissed = false;
 
@@ -76,11 +74,6 @@ class _SimulatedPlayerModalState extends State<SimulatedPlayerModal> {
     final related = context.read<AppState>().recommendationsFor(widget.item, count: 1);
     return related.isNotEmpty ? related.first : null;
   }
-
-  bool get _showSkipIntro =>
-      widget.item.type == MediaType.series &&
-      _currentPosition >= _introStart &&
-      _currentPosition < _introEnd;
 
   bool get _showUpNext =>
       widget.item.type == MediaType.series &&
@@ -127,11 +120,6 @@ class _SimulatedPlayerModalState extends State<SimulatedPlayerModal> {
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(content: Text('Playing Next Episode...')),
     );
-  }
-
-  void _skipIntro() {
-    HapticFeedback.mediumImpact();
-    setState(() => _currentPosition = _introEnd + 1);
   }
 
   void _resetHideControlsTimer() {
@@ -246,26 +234,6 @@ class _SimulatedPlayerModalState extends State<SimulatedPlayerModal> {
                 ),
               ),
             ),
-
-            // Skip Intro (visible independent of the controls overlay)
-            if (_showSkipIntro && !_isLocked)
-              Positioned(
-                right: 16,
-                bottom: 130,
-                child: SafeArea(
-                  child: OutlinedButton(
-                    onPressed: _skipIntro,
-                    style: OutlinedButton.styleFrom(
-                      backgroundColor: Colors.black87,
-                      foregroundColor: Colors.white,
-                      side: const BorderSide(color: Colors.white70),
-                      padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 12),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(4)),
-                    ),
-                    child: Text('Skip Intro', style: AppTypography.button.copyWith(fontSize: 13)),
-                  ),
-                ),
-              ),
 
             // Up Next / Auto-advance Overlay
             if (_showUpNext && !_isLocked)
