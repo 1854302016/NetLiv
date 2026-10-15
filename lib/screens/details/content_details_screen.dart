@@ -511,7 +511,7 @@ class _ContentDetailsScreenState extends State<ContentDetailsScreen>
                     child: GestureDetector(
                       onTap: () {
                         HapticFeedback.heavyImpact();
-                        playMedia(context, widget.item);
+                        _playMain();
                       },
                       child: Container(
                         padding: const EdgeInsets.all(16),
@@ -710,7 +710,7 @@ class _ContentDetailsScreenState extends State<ContentDetailsScreen>
                     child: ElevatedButton.icon(
                       onPressed: () {
                         HapticFeedback.heavyImpact();
-                        playMedia(context, widget.item);
+                        _playMain();
                       },
                       style: ElevatedButton.styleFrom(
                         backgroundColor: Colors.white,
@@ -995,6 +995,17 @@ class _ContentDetailsScreenState extends State<ContentDetailsScreen>
         }
       },
     );
+  }
+
+  // A series has no main video of its own, so Play starts its first episode.
+  void _playMain() {
+    final episodes = widget.item.episodes ?? [];
+    final hasOwnVideo = widget.item.videoUrl?.isNotEmpty == true;
+    if (widget.item.type == MediaType.series && episodes.isNotEmpty && !hasOwnVideo) {
+      playEpisode(context, widget.item, episodeIndex: 0);
+    } else {
+      playMedia(context, widget.item);
+    }
   }
 
   Widget _buildEpisodesSection() {

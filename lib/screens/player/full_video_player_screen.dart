@@ -99,10 +99,9 @@ class _FullVideoPlayerScreenState extends State<FullVideoPlayerScreen>
   String _selectedSubtitle = 'English (CC)';
   bool _subtitlesEnabled = true;
 
-  // Quality & PiP & Skip Intro
+  // Quality & PiP
   static const MethodChannel _pipChannel = MethodChannel('com.example.netliv/pip');
   String _selectedQuality = 'Auto';
-  bool _canSkipIntro = false;
 
   late int _currentEpisodeIndex;
   late List<Episode> _episodeList;
@@ -134,6 +133,14 @@ class _FullVideoPlayerScreenState extends State<FullVideoPlayerScreen>
   }
 
   String get _activeVideoUrl {
+    // After a swipe/auto-next the current episode wins over the URL the player was opened with.
+    if (_episodeList.isNotEmpty &&
+        _currentEpisodeIndex < _episodeList.length &&
+        _currentEpisodeIndex != (widget.episodeIndex ?? 0)) {
+      final epUrl = _episodeList[_currentEpisodeIndex].videoUrl;
+      if (epUrl != null && epUrl.isNotEmpty) return epUrl;
+      return widget.item.videoUrl ?? '';
+    }
     if (widget.videoUrl != null && widget.videoUrl!.isNotEmpty) {
       return widget.videoUrl!;
     }
@@ -152,7 +159,8 @@ class _FullVideoPlayerScreenState extends State<FullVideoPlayerScreen>
   }
 
   String? get _displaySubtitle {
-    if (widget.subtitle != null && widget.subtitle!.isNotEmpty) {
+    final switchedEpisode = _currentEpisodeIndex != (widget.episodeIndex ?? 0);
+    if (!switchedEpisode && widget.subtitle != null && widget.subtitle!.isNotEmpty) {
       return widget.subtitle;
     }
     if (_episodeList.isNotEmpty && _currentEpisodeIndex < _episodeList.length) {
@@ -230,11 +238,6 @@ class _FullVideoPlayerScreenState extends State<FullVideoPlayerScreen>
     if (!mounted) return;
     final controller = _controller;
     if (controller != null && controller.value.isInitialized) {
-      final posSec = controller.value.position.inSeconds;
-      final shouldShowIntro = posSec >= 4 && posSec <= 90;
-      if (_canSkipIntro != shouldShowIntro) {
-        _canSkipIntro = shouldShowIntro;
-      }
       // Auto-next episode if series finished
       if (controller.value.position >= controller.value.duration &&
           controller.value.duration > Duration.zero) {
@@ -251,16 +254,34 @@ class _FullVideoPlayerScreenState extends State<FullVideoPlayerScreen>
       _episodeList.isNotEmpty && _currentEpisodeIndex + 1 < _episodeList.length;
 
   void _playNextEpisode() {
-    if (!_hasNextEpisode) return;
+    if (_hasNextEpisode) _playEpisodeAt(_currentEpisodeIndex + 1);
+  }
+
+  void _playPreviousEpisode() {
+    if (_currentEpisodeIndex > 0) _playEpisodeAt(_currentEpisodeIndex - 1);
+  }
+
+  void _playEpisodeAt(int index) {
     HapticFeedback.mediumImpact();
     setState(() {
-      _currentEpisodeIndex++;
+      _currentEpisodeIndex = index;
+      _showControls = true;
+      _showBrightnessHud = false;
+      _showVolumeHud = false;
     });
-    final nextEp = _episodeList[_currentEpisodeIndex];
-    final nextUrl = nextEp.videoUrl?.isNotEmpty == true
-        ? nextEp.videoUrl!
-        : (widget.item.videoUrl ?? '');
-    _initPlayerForUrl(nextUrl);
+    _initPlayerForUrl(_activeVideoUrl);
+  }
+
+  // Reels-style: a quick swipe up plays the next episode, a quick swipe down the previous one.
+  // Slow drags still adjust brightness / volume.
+  void _onVerticalSwipeEnd(DragEndDetails details) {
+    if (_isLocked || _episodeList.length < 2) return;
+    final velocity = details.primaryVelocity ?? 0;
+    if (velocity < -900) {
+      _playNextEpisode();
+    } else if (velocity > 900) {
+      _playPreviousEpisode();
+    }
   }
 
   void _scheduleHideControls() {
@@ -805,6 +826,7 @@ class _FullVideoPlayerScreenState extends State<FullVideoPlayerScreen>
                     onTap: _toggleControls,
                     onDoubleTap: () => _handleDoubleTapSeek(false),
                     onVerticalDragUpdate: _onVerticalDragLeft,
+                    onVerticalDragEnd: _onVerticalSwipeEnd,
                     onHorizontalDragStart: _onHorizontalDragStart,
                     onHorizontalDragUpdate: _onHorizontalDragUpdate,
                     onHorizontalDragEnd: _onHorizontalDragEnd,
@@ -818,6 +840,7 @@ class _FullVideoPlayerScreenState extends State<FullVideoPlayerScreen>
                     onTap: _toggleControls,
                     onDoubleTap: () => _handleDoubleTapSeek(true),
                     onVerticalDragUpdate: _onVerticalDragRight,
+                    onVerticalDragEnd: _onVerticalSwipeEnd,
                     onHorizontalDragStart: _onHorizontalDragStart,
                     onHorizontalDragUpdate: _onHorizontalDragUpdate,
                     onHorizontalDragEnd: _onHorizontalDragEnd,
@@ -1060,50 +1083,6 @@ class _FullVideoPlayerScreenState extends State<FullVideoPlayerScreen>
                         SizedBox(width: 10),
                         Text('Tap to Unlock Screen',
                             style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
-                      ],
-                    ),
-                  ),
-                ),
-              ),
-
-            // Skip Intro Button Overlay (shown during opening 4s to 90s)
-            if (_canSkipIntro && !_isLocked)
-              Positioned(
-                right: 20,
-                bottom: 80,
-                child: GestureDetector(
-                  onTap: () {
-                    HapticFeedback.heavyImpact();
-                    _seekRelative(85);
-                  },
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 9),
-                    decoration: BoxDecoration(
-                      color: Colors.black.withOpacity(0.85),
-                      borderRadius: BorderRadius.circular(6),
-                      border: Border.all(color: Colors.white, width: 1.2),
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.black.withOpacity(0.6),
-                          blurRadius: 10,
-                          offset: const Offset(0, 3),
-                        ),
-                      ],
-                    ),
-                    child: const Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Text(
-                          'Skip Intro',
-                          style: TextStyle(
-                            color: Colors.white,
-                            fontWeight: FontWeight.w700,
-                            fontSize: 13,
-                            letterSpacing: 0.4,
-                          ),
-                        ),
-                        SizedBox(width: 6),
-                        Icon(Icons.fast_forward_rounded, color: Colors.white, size: 18),
                       ],
                     ),
                   ),
