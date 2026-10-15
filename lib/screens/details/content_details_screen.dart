@@ -998,7 +998,22 @@ class _ContentDetailsScreenState extends State<ContentDetailsScreen>
   }
 
   Widget _buildEpisodesSection() {
-    final episodes = widget.item.episodes ?? [];
+    final allEpisodes = widget.item.episodes ?? [];
+    final seasons = allEpisodes.map((e) => e.seasonNumber).toSet().toList()..sort();
+    final season = seasons.contains(_selectedSeason)
+        ? _selectedSeason
+        : (seasons.isEmpty ? 1 : seasons.first);
+    final episodes = allEpisodes.where((e) => e.seasonNumber == season).toList();
+
+    if (allEpisodes.isEmpty) {
+      return Padding(
+        padding: const EdgeInsets.symmetric(vertical: 24),
+        child: Text(
+          'Episodes coming soon',
+          style: AppTypography.bodySmall.copyWith(color: AppColors.textMuted),
+        ),
+      );
+    }
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -1013,14 +1028,13 @@ class _ContentDetailsScreenState extends State<ContentDetailsScreen>
           ),
           child: DropdownButtonHideUnderline(
             child: DropdownButton<int>(
-              value: _selectedSeason,
+              value: season,
               dropdownColor: AppColors.surfaceElevated,
               style: AppTypography.chip.copyWith(color: Colors.white),
               icon: const Icon(Icons.arrow_drop_down, color: Colors.white),
-              items: const [
-                DropdownMenuItem(value: 1, child: Text('Season 1')),
-                DropdownMenuItem(value: 2, child: Text('Season 2')),
-                DropdownMenuItem(value: 3, child: Text('Season 3')),
+              items: [
+                for (final s in seasons)
+                  DropdownMenuItem(value: s, child: Text('Season $s')),
               ],
               onChanged: (val) {
                 if (val != null) {
@@ -1045,7 +1059,7 @@ class _ContentDetailsScreenState extends State<ContentDetailsScreen>
             return InkWell(
               onTap: () {
                 HapticFeedback.mediumImpact();
-                playEpisode(context, widget.item, episodeIndex: index);
+                playEpisode(context, widget.item, episodeIndex: allEpisodes.indexOf(ep));
               },
               borderRadius: BorderRadius.circular(10),
               child: Container(
